@@ -91,6 +91,14 @@ grantee's user id, never the raw email. Profiles are not broadly readable —
 users see their own profile, and owners see profiles of users bridged to
 their islands.
 
+## Constitution
+
+Non-negotiable principles live in
+[docs/bridges-constitution.md](docs/bridges-constitution.md) — starting with
+**No God-Mode Access**: all access runs through the requesting identity's
+permissions, and the Island's boundaries are enforced by the database, not
+application promises.
+
 ## Trust layer
 
 Every asset carries provenance — `source_type` (original, uploaded,
