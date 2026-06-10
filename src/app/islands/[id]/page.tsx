@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { IslandSilhouette } from "@/components/island-silhouette";
+import { PLACE_TYPES, PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
-  PLACE_TYPES,
-  PLACE_TYPE_ICONS,
-  type Place,
-} from "@/lib/places";
+  STEWARD_ROLE_ICONS,
+  type Steward,
+} from "@/lib/stewards";
 import {
   createPlace,
   deletePlace,
@@ -169,6 +170,19 @@ export default async function IslandPage({
     ? places.find((place) => place.id === edit)
     : undefined;
 
+  // Stewards present on the island (RLS-filtered for bridged visitors).
+  const { data: stewardData } = await supabase
+    .from("stewards")
+    .select("id, name, role, place_id")
+    .eq("island_id", island.id)
+    .order("created_at", { ascending: true });
+
+  const stewards = (stewardData ?? []) as Pick<
+    Steward,
+    "id" | "name" | "role" | "place_id"
+  >[];
+  const shoreStewards = stewards.filter((steward) => !steward.place_id);
+
   // Owner-only: active bridges for this island, labeled with grantee emails.
   let bridges: BridgeWithEmail[] = [];
   if (isOwner) {
@@ -193,18 +207,20 @@ export default async function IslandPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-8 p-6">
-      <div>
+    <main className="mx-auto max-w-3xl space-y-8 p-6">
+      <div className="flex items-center justify-between text-sm">
         <Link
           href="/dashboard"
-          className="text-sm text-gray-600 underline dark:text-gray-400"
+          className="text-gray-600 underline dark:text-gray-400"
         >
-          ← Back to dashboard
+          ← The sea
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">{island.name}</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {isOwner ? "You own this island." : "Shared with you via a bridge."}
-        </p>
+        <Link
+          href={`/islands/${island.id}/stewards`}
+          className="text-gray-600 underline dark:text-gray-400"
+        >
+          🤝 Stewards ({stewards.length})
+        </Link>
       </div>
 
       {error && (
@@ -213,36 +229,70 @@ export default async function IslandPage({
         </p>
       )}
 
-      {/* Island map */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Map</h2>
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950">
-          {places.map((place) => (
-            <div
-              key={place.id}
-              style={{ left: `${place.position_x}%`, top: `${place.position_y}%` }}
-              className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
-            >
-              <span className="text-xl" title={place.name}>
-                {PLACE_TYPE_ICONS[place.type] ?? "📍"}
-              </span>
-              <p className="max-w-24 truncate text-xs font-medium text-emerald-900 dark:text-emerald-200">
-                {place.name}
-              </p>
-            </div>
-          ))}
-          {places.length === 0 && (
-            <p className="absolute inset-0 flex items-center justify-center text-sm text-emerald-700 dark:text-emerald-400">
-              No places on this island yet.
-            </p>
-          )}
+      {/* The island. Not a panel on the page — the page. */}
+      <section className="animate-arrive relative aspect-[4/3] w-full overflow-hidden rounded-2xl">
+        <IslandSilhouette
+          islandId={island.id}
+          className="absolute inset-0 h-full w-full"
+        />
+
+        <div className="absolute left-5 top-4">
+          <h1 className="text-3xl font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]">
+            {island.name}
+          </h1>
+          <p className="text-sm text-white/85 [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
+            {isOwner
+              ? "You are home."
+              : "You've crossed a bridge to someone's shore."}
+          </p>
         </div>
+
+        {places.map((place) => (
+          <Link
+            key={place.id}
+            href={`/islands/${island.id}/places/${place.id}`}
+            style={{
+              left: `${10 + place.position_x * 0.8}%`,
+              top: `${10 + place.position_y * 0.8}%`,
+            }}
+            className="group absolute -translate-x-1/2 -translate-y-1/2 text-center"
+          >
+            <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg ring-1 ring-black/15 transition-transform group-hover:scale-110 dark:bg-gray-900/90">
+              {PLACE_TYPE_ICONS[place.type] ?? "📍"}
+            </span>
+            <span className="mt-1 block max-w-28 truncate rounded-full bg-black/45 px-2 py-0.5 text-xs font-medium text-white">
+              {place.name}
+            </span>
+          </Link>
+        ))}
+
+        {places.length === 0 && (
+          <p className="absolute inset-x-0 bottom-12 text-center text-sm text-white/85 [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
+            {isOwner
+              ? "Unbroken ground. Build your first place."
+              : "Nothing here has been shared with you yet."}
+          </p>
+        )}
+
+        {shoreStewards.length > 0 && (
+          <div className="absolute bottom-3 left-3 flex max-w-[80%] flex-wrap gap-1.5">
+            {shoreStewards.map((steward) => (
+              <span
+                key={steward.id}
+                title={steward.name}
+                className="rounded-full bg-black/45 px-2 py-0.5 text-xs text-white"
+              >
+                {STEWARD_ROLE_ICONS[steward.role] ?? "🤝"} {steward.name}
+              </span>
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Place cards */}
-      <section className="space-y-2">
-        <h2 className="text-lg font-medium">Places</h2>
-        {places.length > 0 ? (
+      {/* Places, told as parts of the island rather than rows of data */}
+      {places.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-medium">Places</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {places.map((place) => (
               <li
@@ -258,9 +308,9 @@ export default async function IslandPage({
                       {PLACE_TYPE_ICONS[place.type] ?? "📍"} {place.name}
                     </Link>
                     <p className="text-xs text-gray-500">
-                      {place.type} · ({place.position_x}, {place.position_y}) ·{" "}
-                      {place.visibility} · {place.assets[0]?.count ?? 0}{" "}
+                      {place.type} · {place.assets[0]?.count ?? 0}{" "}
                       {(place.assets[0]?.count ?? 0) === 1 ? "asset" : "assets"}
+                      {isOwner && <> · {place.visibility}</>}
                     </p>
                   </div>
                   {isOwner && (
@@ -292,107 +342,114 @@ export default async function IslandPage({
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {isOwner
-              ? "Add your first place below."
-              : "The owner hasn't shared any places with you yet."}
-          </p>
-        )}
-      </section>
-
-      {/* Create / edit form (owner only) */}
-      {isOwner && (
-        <section className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium">
-              {editingPlace ? `Edit "${editingPlace.name}"` : "Add a place"}
-            </h2>
-            {editingPlace && (
-              <Link href={`/islands/${island.id}`} className="text-sm underline">
-                Cancel
-              </Link>
-            )}
-          </div>
-          <form
-            action={editingPlace ? updatePlace : createPlace}
-            className="space-y-4"
-          >
-            <input type="hidden" name="island_id" value={island.id} />
-            {editingPlace && (
-              <input type="hidden" name="place_id" value={editingPlace.id} />
-            )}
-            <PlaceFormFields key={editingPlace?.id ?? "new"} place={editingPlace} />
-            <button
-              type="submit"
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
-            >
-              {editingPlace ? "Save changes" : "Add place"}
-            </button>
-          </form>
         </section>
       )}
 
-      {/* Bridges management (owner only) */}
+      {/* The owner's workbench, folded away so the island stays the subject */}
       {isOwner && (
-        <section className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
-          <div>
-            <h2 className="text-lg font-medium">Bridges</h2>
+        <details
+          open={Boolean(editingPlace) || Boolean(error)}
+          className="rounded-lg border border-gray-200 dark:border-gray-800"
+        >
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+            {editingPlace ? `Editing "${editingPlace.name}"` : "Build a place"}
+          </summary>
+          <div className="space-y-4 border-t border-gray-200 p-4 dark:border-gray-800">
+            {editingPlace && (
+              <Link
+                href={`/islands/${island.id}`}
+                className="text-sm underline"
+              >
+                Cancel editing
+              </Link>
+            )}
+            <form
+              action={editingPlace ? updatePlace : createPlace}
+              className="space-y-4"
+            >
+              <input type="hidden" name="island_id" value={island.id} />
+              {editingPlace && (
+                <input type="hidden" name="place_id" value={editingPlace.id} />
+              )}
+              <PlaceFormFields
+                key={editingPlace?.id ?? "new"}
+                place={editingPlace}
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+              >
+                {editingPlace ? "Save changes" : "Build place"}
+              </button>
+            </form>
+          </div>
+        </details>
+      )}
+
+      {isOwner && (
+        <details
+          open={Boolean(error)}
+          className="rounded-lg border border-gray-200 dark:border-gray-800"
+        >
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">
+            Bridges ({bridges.length})
+          </summary>
+          <div className="space-y-3 border-t border-gray-200 p-4 dark:border-gray-800">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Bridged users can view this island and any place marked{" "}
+              Bridged visitors can walk your island and see anything marked{" "}
               <span className="font-medium">bridged</span>.
             </p>
+
+            {bridges.length > 0 ? (
+              <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                {bridges.map((bridge) => (
+                  <li
+                    key={bridge.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{bridge.email}</p>
+                      <p className="text-xs text-gray-500">
+                        since {new Date(bridge.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <form action={revokeBridge}>
+                      <input type="hidden" name="island_id" value={island.id} />
+                      <input type="hidden" name="bridge_id" value={bridge.id} />
+                      <button
+                        type="submit"
+                        className="text-xs text-red-600 underline dark:text-red-400"
+                      >
+                        Revoke
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                No bridges yet. Your island keeps its own company.
+              </p>
+            )}
+
+            <form action={grantBridge} className="flex gap-2">
+              <input type="hidden" name="island_id" value={island.id} />
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="friend@example.com"
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+              >
+                Raise a bridge
+              </button>
+            </form>
           </div>
-
-          {bridges.length > 0 ? (
-            <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-              {bridges.map((bridge) => (
-                <li
-                  key={bridge.id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{bridge.email}</p>
-                    <p className="text-xs text-gray-500">
-                      since {new Date(bridge.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <form action={revokeBridge}>
-                    <input type="hidden" name="island_id" value={island.id} />
-                    <input type="hidden" name="bridge_id" value={bridge.id} />
-                    <button
-                      type="submit"
-                      className="text-xs text-red-600 underline dark:text-red-400"
-                    >
-                      Revoke
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              No bridges yet. This island is fully private.
-            </p>
-          )}
-
-          <form action={grantBridge} className="flex gap-2">
-            <input type="hidden" name="island_id" value={island.id} />
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="user@example.com"
-              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
-            >
-              Grant bridge
-            </button>
-          </form>
-        </section>
+        </details>
       )}
     </main>
   );

@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { IslandSilhouette } from "@/components/island-silhouette";
 import { ASSET_TYPES, ASSET_TYPE_ICONS, type Asset } from "@/lib/assets";
 import { PLACE_TYPE_ICONS, type Place } from "@/lib/places";
+import {
+  STEWARD_ROLE_ICONS,
+  formatRole,
+  type Steward,
+} from "@/lib/stewards";
 import { createAsset, deleteAsset, updateAsset } from "./actions";
 
 const inputClass =
@@ -166,16 +172,35 @@ export default async function PlacePage({
     ? assets.find((asset) => asset.id === edit)
     : undefined;
 
+  // Stewards assigned to this place (managed from the island stewards page).
+  const { data: stewardData } = await supabase
+    .from("stewards")
+    .select("id, name, role, description, visibility")
+    .eq("place_id", place.id)
+    .order("created_at", { ascending: true });
+
+  const stewards = (stewardData ?? []) as Pick<
+    Steward,
+    "id" | "name" | "role" | "description" | "visibility"
+  >[];
+
   return (
     <main className="mx-auto max-w-2xl space-y-8 p-6">
-      <div>
+      <div className="animate-arrive relative h-24 overflow-hidden rounded-xl">
+        <IslandSilhouette
+          islandId={island.id}
+          className="absolute inset-0 h-full w-full"
+        />
         <Link
           href={`/islands/${island.id}`}
-          className="text-sm text-gray-600 underline dark:text-gray-400"
+          className="absolute left-4 top-3 text-sm font-medium text-white underline [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]"
         >
-          ← Back to {island.name}
+          ← {island.name}
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">
+      </div>
+
+      <div>
+        <h1 className="text-2xl font-semibold">
           {PLACE_TYPE_ICONS[place.type] ?? "📍"} {place.name}
         </h1>
         <p className="text-xs text-gray-500">
@@ -268,6 +293,45 @@ export default async function PlacePage({
           </p>
         )}
       </section>
+
+      {/* Stewards at this place */}
+      {stewards.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-medium">Stewards here</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {stewards.map((steward) => (
+              <li
+                key={steward.id}
+                className="rounded-lg border border-gray-200 p-4 dark:border-gray-800"
+              >
+                <p className="font-medium">
+                  {STEWARD_ROLE_ICONS[steward.role] ?? "🤝"} {steward.name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {formatRole(steward.role)} · {steward.visibility}
+                </p>
+                {steward.description && (
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {steward.description}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+          {isOwner && (
+            <p className="text-xs text-gray-500">
+              Manage stewards from the{" "}
+              <Link
+                href={`/islands/${island.id}/stewards`}
+                className="underline"
+              >
+                island stewards page
+              </Link>
+              .
+            </p>
+          )}
+        </section>
+      )}
 
       {/* Create / edit form (owner only) */}
       {isOwner && (

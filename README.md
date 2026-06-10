@@ -62,6 +62,18 @@ permissions but can only restrict further: a bridged user sees an asset only
 when they hold a bridge to the island, the place is `bridged`, *and* the asset
 is `bridged`. An asset can never be more visible than the place it sits on.
 
+## Stewards
+
+Each island can appoint **stewards** — named caretakers with a role
+(Librarian, Archivist, Curator, Researcher, Builder, Teacher, Receptionist,
+Guardian) — managed from `/islands/<id>/stewards`. A steward is either
+island-wide or assigned to a specific place; place-scoped stewards also show
+up on that place's page. Stewards store an optional `model_provider` /
+`model_name` as configuration only — **no external model is connected yet**;
+this phase is data model and interface. Visibility follows the same layering
+as assets: bridged users see only `bridged` stewards that are island-wide or
+on a `bridged` place.
+
 ## Bridges
 
 Island owners manage bridges from the island detail page: grant access by
@@ -89,6 +101,10 @@ Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_
   can read an asset only when both the place and the asset are `bridged`. A
   composite foreign key guarantees `assets.island_id` always matches the
   place's island.
+- **stewards** — only the island owner can create/update/delete; bridged
+  users can read a steward only when it is `bridged` and either island-wide
+  or on a `bridged` place. The same composite foreign key pattern keeps
+  place-scoped stewards on the right island.
 - Policies use `security definer` helper functions (`has_bridge_access`,
   `is_island_owner`) to avoid recursive RLS between tables.
 
