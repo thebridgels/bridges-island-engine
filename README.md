@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bridges Island Engine
 
-## Getting Started
+Next.js (App Router) + Supabase MVP. Users own private **islands**; a **bridge**
+is an explicit grant that shares an island with another user. Auth is Supabase
+email + password only (no OAuth, no magic links).
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Create a Supabase project** at [supabase.com](https://supabase.com).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configure env vars.** Copy `.env.example` to `.env.local` and fill in the
+   values from *Dashboard → Project Settings → API*:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Apply the database migration.** Either paste
+   [supabase/migrations/20260610000000_islands_and_bridges.sql](supabase/migrations/20260610000000_islands_and_bridges.sql)
+   into the Supabase SQL Editor and run it, or use the CLI:
 
-## Learn More
+   ```
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. **(Recommended for dev) Disable email confirmation** so signup logs you in
+   immediately: *Dashboard → Authentication → Sign In / Providers → Email →
+   turn off "Confirm email"*. The app handles both modes — with confirmation
+   on, signup redirects to login with a "check your email" notice.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Run the app:**
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```
+   npm run dev
+   ```
 
-## Deploy on Vercel
+## Auth model
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Sign up / log in with email + password (`/signup`, `/login`); log out from
+  the dashboard.
+- [src/proxy.ts](src/proxy.ts) refreshes the Supabase session on every request
+  and redirects unauthenticated users away from `/dashboard` and `/islands/*`.
+  Pages also re-check the user server-side as defense in depth.
+- Every island row has `owner_id → auth.users.id`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Row Level Security
+
+Defined in [the migration](supabase/migrations/20260610000000_islands_and_bridges.sql):
+
+- **islands** — owners have full access; other users can *read* an island only
+  if a bridge grants them access. Inserts must set `owner_id` to the caller.
+- **bridges** — only the island owner can create them; the owner can revoke
+  and the grantee can remove their own access.
+- Policies use `security definer` helper functions (`has_bridge_access`,
+  `is_island_owner`) to avoid recursive RLS between the two tables.
+
+All data access goes through the user's session (anon key + RLS); there is no
+service-role key in the app.
