@@ -1,4 +1,4 @@
-export const STEWARD_ROLES = [
+export const ARCHITECT_ROLES = [
   "librarian",
   "archivist",
   "curator",
@@ -9,9 +9,9 @@ export const STEWARD_ROLES = [
   "guardian",
 ] as const;
 
-export type StewardRole = (typeof STEWARD_ROLES)[number];
+export type ArchitectRole = (typeof ARCHITECT_ROLES)[number];
 
-export const STEWARD_ROLE_ICONS: Record<StewardRole, string> = {
+export const ARCHITECT_ROLE_ICONS: Record<ArchitectRole, string> = {
   librarian: "📚",
   archivist: "🗃️",
   curator: "🏛️",
@@ -26,13 +26,13 @@ export const MODEL_PROVIDERS = ["anthropic", "openai", "other"] as const;
 
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 
-export type Steward = {
+export type Architect = {
   id: string;
   island_id: string;
   place_id: string | null;
   owner_id: string;
   name: string;
-  role: StewardRole;
+  role: ArchitectRole;
   description: string | null;
   model_provider: ModelProvider | null;
   model_name: string | null;

@@ -12,7 +12,7 @@ Normal access to an Island must occur through the identity and permissions
 of the person or agent requesting access.
 
 Bridges must not use unrestricted administrative access for ordinary
-user-facing reads, writes, steward knowledge, bridge visibility, or model
+user-facing reads, writes, architect knowledge, bridge visibility, or model
 context assembly.
 
 Service-role or administrative access, if ever introduced, may only be used
@@ -30,11 +30,11 @@ application promises.
   environment files.
 - All boundaries live in Row Level Security policies in
   [`supabase/migrations/`](../supabase/migrations/) — islands, places,
-  assets, stewards, bridges, profiles, and the audit ledger are each
+  assets, architects, bridges, profiles, and the audit ledger are each
   protected at the database layer, so a bug in application code cannot
   widen access.
-- Steward knowledge is derived through the viewer's session
-  ([steward-knowledge.md](steward-knowledge.md)), and audit logging records
+- Architect knowledge is derived through the viewer's session
+  ([architect-knowledge.md](architect-knowledge.md)), and audit logging records
   the requesting user's identity through their own session
   ([provenance.md](provenance.md)). When model context assembly arrives, it
   inherits this rule: context is built exclusively from what the requesting
@@ -70,12 +70,12 @@ Authority creates responsibility.
 ### As enforced today
 
 - Ownership is structural, not declarative: `islands.owner_id`,
-  `assets.owner_id`, and `stewards.owner_id` reference `auth.users`, and
+  `assets.owner_id`, and `architects.owner_id` reference `auth.users`, and
   RLS `with check` policies require the creator to be the caller. There is
   no mechanism by which the platform, or any other user, becomes an owner
   of an Island's contents.
 - The owner's control is exclusive at the database layer: only the owner
-  can create, change, or remove places, assets, and stewards; only the
+  can create, change, or remove places, assets, and architects; only the
   owner can set `private`/`bridged` visibility; only the owner can grant a
   bridge ([provenance.md](provenance.md), the RLS policies in
   [`supabase/migrations/`](../supabase/migrations/)).

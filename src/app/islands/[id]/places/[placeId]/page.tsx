@@ -11,10 +11,10 @@ import {
 } from "@/lib/assets";
 import { PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
-  STEWARD_ROLE_ICONS,
+  ARCHITECT_ROLE_ICONS,
   formatRole,
-  type Steward,
-} from "@/lib/stewards";
+  type Architect,
+} from "@/lib/architects";
 import { createAsset, deleteAsset, updateAsset } from "./actions";
 
 const inputClass =
@@ -224,15 +224,15 @@ export default async function PlacePage({
     ? assets.find((asset) => asset.id === edit)
     : undefined;
 
-  // Stewards assigned to this place (managed from the island stewards page).
-  const { data: stewardData } = await supabase
-    .from("stewards")
+  // Architects assigned to this place (managed from the island architects page).
+  const { data: architectData } = await supabase
+    .from("architects")
     .select("id, name, role, description, visibility")
     .eq("place_id", place.id)
     .order("created_at", { ascending: true });
 
-  const stewards = (stewardData ?? []) as Pick<
-    Steward,
+  const architects = (architectData ?? []) as Pick<
+    Architect,
     "id" | "name" | "role" | "description" | "visibility"
   >[];
 
@@ -353,25 +353,25 @@ export default async function PlacePage({
         )}
       </section>
 
-      {/* Stewards at this place */}
-      {stewards.length > 0 && (
+      {/* Architects at this place */}
+      {architects.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-lg font-medium">Stewards here</h2>
+          <h2 className="text-lg font-medium">Architects here</h2>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {stewards.map((steward) => (
+            {architects.map((architect) => (
               <li
-                key={steward.id}
+                key={architect.id}
                 className="rounded-lg border border-gray-200 p-4 dark:border-gray-800"
               >
                 <p className="font-medium">
-                  {STEWARD_ROLE_ICONS[steward.role] ?? "🤝"} {steward.name}
+                  {ARCHITECT_ROLE_ICONS[architect.role] ?? "📐"} {architect.name}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {formatRole(steward.role)} · {steward.visibility}
+                  {formatRole(architect.role)} · {architect.visibility}
                 </p>
-                {steward.description && (
+                {architect.description && (
                   <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    {steward.description}
+                    {architect.description}
                   </p>
                 )}
               </li>
@@ -379,12 +379,12 @@ export default async function PlacePage({
           </ul>
           {isOwner && (
             <p className="text-xs text-gray-500">
-              Manage stewards from the{" "}
+              Manage architects from the{" "}
               <Link
-                href={`/islands/${island.id}/stewards`}
+                href={`/islands/${island.id}/architects`}
                 className="underline"
               >
-                island stewards page
+                island architects page
               </Link>
               .
             </p>

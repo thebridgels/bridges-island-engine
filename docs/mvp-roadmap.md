@@ -5,10 +5,11 @@ unless said so.
 
 ## 1. Implemented
 
-All features below are built, linted, and building. Operational note: the
-six SQL migrations have not yet been applied to a live Supabase project,
-and `.env.local` still holds placeholder credentials — the app has not yet
-been exercised end-to-end against a real database.
+All features below are built, linted, and building. Operational note: all
+seven SQL migrations (including the stewards→architects rename) are applied
+to a live Supabase project, `.env.local` holds real credentials, and the
+full manual test plan passed end-to-end on 2026-06-10
+([manual-test-plan.md](manual-test-plan.md)).
 
 - **Auth** — Supabase email + password only (no OAuth, no magic links).
   Sign up, log in, log out; `src/proxy.ts` refreshes sessions and guards
@@ -26,13 +27,17 @@ been exercised end-to-end against a real database.
   a locked-down `profiles` table + security-definer lookup; no email
   enumeration), lists active bridges, revokes them. Bridges store user ids,
   never raw emails.
-- **Stewards** — named caretaker roles (8 initial roles), island-wide or
-  place-scoped, with stored-but-unconnected `model_provider`/`model_name`.
-  Owner CRUD; bridged users see only bridged stewards on visible scopes.
-- **Steward Knowledge** — defined and implemented as derived scope, not
-  storage: `stewardKnowledge()` = steward scope ∩ viewer RLS visibility
-  over existing places/assets. No knowledge table. Surfaced on steward
-  cards. ([steward-knowledge.md](steward-knowledge.md))
+- **Architects** — the persistent AI presence that helps an owner design,
+  build, organize, govern, protect, and present an island or place
+  (8 initial roles), island-wide or place-scoped, with
+  stored-but-unconnected `model_provider`/`model_name`. Not the owner, no
+  authority above the owner, operates only within owner-granted,
+  island-enforced permissions. Owner CRUD; bridged users see only bridged
+  architects on visible scopes.
+- **Architect Knowledge** — defined and implemented as derived scope, not
+  storage: `architectKnowledge()` = architect scope ∩ viewer RLS visibility
+  over existing places/assets. No knowledge table. Surfaced on architect
+  cards. ([architect-knowledge.md](architect-knowledge.md))
 - **Audit and Provenance** — append-only `audit_events` ledger (owner-read
   only, actor-verified inserts, no update/delete policies) logging all 11
   major owner actions; owner-only Ledger page. Assets carry `source_type`,
@@ -49,15 +54,15 @@ been exercised end-to-end against a real database.
 
 ## 2. Immediate Next Steps (recommended, not yet implemented)
 
-1. **Go live against a real Supabase project.** Create the project, apply
-   the six migrations, fill `.env.local`, and walk every flow manually
-   (two accounts: owner + bridged visitor). Everything below depends on
-   this; RLS policies are written but have never been executed. Checklist:
-   [manual-test-plan.md](manual-test-plan.md).
-2. **Connect stewards to a real model (Claude first).** Server-side
+1. **Go live against a real Supabase project.** ✅ Done 2026-06-10: project
+   created, migrations applied, `.env.local` filled, and the full checklist
+   in [manual-test-plan.md](manual-test-plan.md) passed (three accounts:
+   owner, bridged visitor, stranger — including a forged-write probe
+   rejected by RLS).
+2. **Connect architects to a real model (Claude first).** Server-side
    conversation route where prompt context is assembled exclusively from
-   `stewardKnowledge()` for the requesting session, steward replies are
-   marked as AI, and steward activity is logged to the ledger with steward
+   `architectKnowledge()` for the requesting session, architect replies are
+   marked as AI, and architect activity is logged to the ledger with architect
    context in metadata. This is the product's center of gravity.
 3. **Click-to-place on the island map.** The one deferred client
    component: choose a place's position by clicking the coastline instead
@@ -67,7 +72,7 @@ been exercised end-to-end against a real database.
    the existing RLS layering — same two-gate visibility, no public buckets
    by default.
 5. **Owner export.** A "take your island with you" JSON export (island,
-   places, assets, stewards, ledger). Cheap to build now, and it makes
+   places, assets, architects, ledger). Cheap to build now, and it makes
    principle 2's ownership claim concrete.
 
 ## 3. Risks / Design Questions
@@ -75,20 +80,20 @@ been exercised end-to-end against a real database.
 - **Public views.** Everything today is private-or-bridged; there is no
   anonymous access of any kind. Should an island ever have a public shore
   (read-only, no account)? That would add an `anon` dimension to every RLS
-  policy and to steward visibility — much cheaper to decide before the
+  policy and to architect visibility — much cheaper to decide before the
   model connection than after.
 - **File uploads / storage.** Storage policies are a second permission
   system that must not drift from the database's. Open questions: size
   limits, content scanning, whether bridged visitors may download
   originals or only view.
 - **Real AI model connection.** Who pays for tokens (platform vs owner's
-  own API key)? Are steward conversations stored — and if so, they become
+  own API key)? Are architect conversations stored — and if so, they become
   island content with visibility and provenance of their own. Rate
   limiting per visitor. Prompt-injection: bridged-visible assets become
-  model input, so a visitor-facing steward reads owner-authored content as
+  model input, so a visitor-facing architect reads owner-authored content as
   context — the trust direction needs thought.
-- **Steward authority limits.** Stewards are currently read-only lenses.
-  May a steward ever write (create assets, summaries, notes)? If so:
+- **Architect authority limits.** Architects are currently read-only lenses.
+  May an architect ever write (create assets, summaries, notes)? If so:
   written *as whom*, marked how (`created_by_ai`/provenance), logged how,
   and capped by what? "Unless restricted later" in the knowledge rules
   also still needs its restriction mechanism.

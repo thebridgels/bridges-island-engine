@@ -1,4 +1,9 @@
-﻿-- ============================================================
+-- Consolidated setup script: produces the FINAL schema state, equivalent to
+-- running all migrations in order (including 20260610060000, which renamed
+-- stewards to architects — folded in here, so a fresh install creates
+-- public.architects directly and never needs the rename).
+
+-- ============================================================
 -- 20260610000000_islands_and_bridges.sql
 -- ============================================================
 -- Islands and Bridges schema with Row Level Security.
@@ -380,22 +385,25 @@ using (public.is_island_owner(island_id));
 
 
 -- ============================================================
--- 20260610040000_stewards.sql
+-- 20260610040000_stewards.sql + 20260610060000_rename_stewards_to_architects.sql
 -- ============================================================
--- Stewards: named caretaker roles attached to an island, or to a specific
--- place on it (place_id null = island-wide steward).
+-- Architects: the persistent AI presence that helps an owner design, build,
+-- organize, govern, protect, and present an Island or Place (place_id null =
+-- island-wide architect). The Architect is not the owner, has no authority
+-- above the owner, and operates only within the permissions granted by the
+-- owner and enforced by the Island.
 --
 -- This phase is data model + UI only: model_provider / model_name are stored
 -- configuration and are NOT connected to any external model yet.
 --
 -- Visibility model (same layering as assets):
 --   * Owners see and manage everything on their islands.
---   * A bridged user can see a steward only when ALL of:
+--   * A bridged user can see an architect only when ALL of:
 --       - they hold a bridge to the island,
---       - the steward is visibility = 'bridged',
---       - the steward is island-wide OR its place is visibility = 'bridged'.
+--       - the architect is visibility = 'bridged',
+--       - the architect is island-wide OR its place is visibility = 'bridged'.
 
-create table public.stewards (
+create table public.architects (
   id uuid primary key default gen_random_uuid(),
   island_id uuid not null references public.islands (id) on delete cascade,
   place_id uuid,
@@ -417,17 +425,17 @@ create table public.stewards (
     references public.places (id, island_id) on delete cascade
 );
 
-create index stewards_island_id_idx on public.stewards (island_id);
-create index stewards_place_id_idx on public.stewards (place_id);
+create index architects_island_id_idx on public.architects (island_id);
+create index architects_place_id_idx on public.architects (place_id);
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
 
-alter table public.stewards enable row level security;
+alter table public.architects enable row level security;
 
-create policy "Owners and allowed bridged users can view stewards"
-on public.stewards for select
+create policy "Owners and allowed bridged users can view architects"
+on public.architects for select
 to authenticated
 using (
   public.is_island_owner(island_id)
@@ -446,22 +454,22 @@ using (
   )
 );
 
-create policy "Island owners can create stewards"
-on public.stewards for insert
+create policy "Island owners can create architects"
+on public.architects for insert
 to authenticated
 with check (
   public.is_island_owner(island_id)
   and owner_id = (select auth.uid())
 );
 
-create policy "Island owners can update stewards"
-on public.stewards for update
+create policy "Island owners can update architects"
+on public.architects for update
 to authenticated
 using (public.is_island_owner(island_id))
 with check (public.is_island_owner(island_id));
 
-create policy "Island owners can delete stewards"
-on public.stewards for delete
+create policy "Island owners can delete architects"
+on public.architects for delete
 to authenticated
 using (public.is_island_owner(island_id));
 
@@ -493,10 +501,10 @@ create table public.audit_events (
   action text not null check (action in (
     'place.created', 'place.updated', 'place.deleted',
     'asset.created', 'asset.updated', 'asset.deleted',
-    'steward.created', 'steward.updated', 'steward.deleted',
+    'architect.created', 'architect.updated', 'architect.deleted',
     'bridge.granted', 'bridge.revoked'
   )),
-  target_type text not null check (target_type in ('place', 'asset', 'steward', 'bridge')),
+  target_type text not null check (target_type in ('place', 'asset', 'architect', 'bridge')),
   target_id uuid not null,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()

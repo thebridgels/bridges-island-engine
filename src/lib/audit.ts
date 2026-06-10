@@ -7,13 +7,13 @@ export type AuditAction =
   | "asset.created"
   | "asset.updated"
   | "asset.deleted"
-  | "steward.created"
-  | "steward.updated"
-  | "steward.deleted"
+  | "architect.created"
+  | "architect.updated"
+  | "architect.deleted"
   | "bridge.granted"
   | "bridge.revoked";
 
-export type AuditTargetType = "place" | "asset" | "steward" | "bridge";
+export type AuditTargetType = "place" | "asset" | "architect" | "bridge";
 
 export type AuditEvent = {
   id: string;
@@ -34,9 +34,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "asset.created": "added an asset",
   "asset.updated": "changed an asset",
   "asset.deleted": "removed an asset",
-  "steward.created": "appointed a steward",
-  "steward.updated": "reassigned a steward",
-  "steward.deleted": "dismissed a steward",
+  "architect.created": "appointed an architect",
+  "architect.updated": "reassigned an architect",
+  "architect.deleted": "dismissed an architect",
   "bridge.granted": "raised a bridge",
   "bridge.revoked": "withdrew a bridge",
 };

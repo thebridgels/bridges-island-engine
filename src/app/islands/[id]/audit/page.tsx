@@ -7,7 +7,7 @@ import { AUDIT_ACTION_LABELS, type AuditEvent } from "@/lib/audit";
 const TARGET_ICONS: Record<string, string> = {
   place: "📍",
   asset: "📦",
-  steward: "🤝",
+  architect: "📐",
   bridge: "🌉",
 };
 

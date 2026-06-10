@@ -5,22 +5,22 @@ import { IslandSilhouette } from "@/components/island-silhouette";
 import { PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
   MODEL_PROVIDERS,
-  STEWARD_ROLES,
-  STEWARD_ROLE_ICONS,
+  ARCHITECT_ROLES,
+  ARCHITECT_ROLE_ICONS,
   formatRole,
-  type Steward,
-} from "@/lib/stewards";
-import { stewardKnowledge } from "@/lib/steward-knowledge";
-import { createSteward, deleteSteward, updateSteward } from "./actions";
+  type Architect,
+} from "@/lib/architects";
+import { architectKnowledge } from "@/lib/architect-knowledge";
+import { createArchitect, deleteArchitect, updateArchitect } from "./actions";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
 
-function StewardFormFields({
-  steward,
+function ArchitectFormFields({
+  architect,
   places,
 }: {
-  steward?: Steward;
+  architect?: Architect;
   places: Pick<Place, "id" | "name" | "type">[];
 }) {
   return (
@@ -34,7 +34,7 @@ function StewardFormFields({
             id="name"
             name="name"
             required
-            defaultValue={steward?.name}
+            defaultValue={architect?.name}
             className={inputClass}
           />
         </div>
@@ -45,12 +45,12 @@ function StewardFormFields({
           <select
             id="role"
             name="role"
-            defaultValue={steward?.role ?? "librarian"}
+            defaultValue={architect?.role ?? "librarian"}
             className={inputClass}
           >
-            {STEWARD_ROLES.map((role) => (
+            {ARCHITECT_ROLES.map((role) => (
               <option key={role} value={role}>
-                {STEWARD_ROLE_ICONS[role]} {formatRole(role)}
+                {ARCHITECT_ROLE_ICONS[role]} {formatRole(role)}
               </option>
             ))}
           </select>
@@ -66,7 +66,7 @@ function StewardFormFields({
           name="description"
           rows={2}
           maxLength={1000}
-          defaultValue={steward?.description ?? ""}
+          defaultValue={architect?.description ?? ""}
           className={inputClass}
         />
       </div>
@@ -79,7 +79,7 @@ function StewardFormFields({
           <select
             id="place_id"
             name="place_id"
-            defaultValue={steward?.place_id ?? ""}
+            defaultValue={architect?.place_id ?? ""}
             className={inputClass}
           >
             <option value="">🏝️ Island-wide</option>
@@ -97,7 +97,7 @@ function StewardFormFields({
           <select
             id="visibility"
             name="visibility"
-            defaultValue={steward?.visibility ?? "private"}
+            defaultValue={architect?.visibility ?? "private"}
             className={inputClass}
           >
             <option value="private">private</option>
@@ -115,7 +115,7 @@ function StewardFormFields({
           <select
             id="model_provider"
             name="model_provider"
-            defaultValue={steward?.model_provider ?? ""}
+            defaultValue={architect?.model_provider ?? ""}
             className={inputClass}
           >
             <option value="">None</option>
@@ -134,7 +134,7 @@ function StewardFormFields({
             id="model_name"
             name="model_name"
             maxLength={120}
-            defaultValue={steward?.model_name ?? ""}
+            defaultValue={architect?.model_name ?? ""}
             placeholder="e.g. claude-fable-5"
             className={inputClass}
           />
@@ -144,7 +144,7 @@ function StewardFormFields({
   );
 }
 
-export default async function StewardsPage({
+export default async function ArchitectsPage({
   params,
   searchParams,
 }: {
@@ -177,7 +177,7 @@ export default async function StewardsPage({
   const isOwner = island.owner_id === user.id;
 
   // Places for the assignment dropdown and for labeling place-scoped
-  // stewards. RLS filters this list for bridged users automatically.
+  // architects. RLS filters this list for bridged users automatically.
   const { data: placeData } = await supabase
     .from("places")
     .select("id, name, type")
@@ -202,19 +202,19 @@ export default async function StewardsPage({
     place_id: string;
   }[];
 
-  // RLS: owners get every steward; bridged users only 'bridged' stewards
+  // RLS: owners get every architect; bridged users only 'bridged' architects
   // that are island-wide or on a 'bridged' place.
   const { data } = await supabase
-    .from("stewards")
+    .from("architects")
     .select(
       "id, island_id, place_id, owner_id, name, role, description, model_provider, model_name, visibility, created_at"
     )
     .eq("island_id", island.id)
     .order("created_at", { ascending: true });
 
-  const stewards = (data ?? []) as Steward[];
-  const editingSteward = isOwner
-    ? stewards.find((steward) => steward.id === edit)
+  const architects = (data ?? []) as Architect[];
+  const editingArchitect = isOwner
+    ? architects.find((architect) => architect.id === edit)
     : undefined;
 
   return (
@@ -233,9 +233,10 @@ export default async function StewardsPage({
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold">Stewards</h1>
+        <h1 className="text-2xl font-semibold">Architects</h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Caretakers of {island.name}, island-wide or at a specific place.
+          Builders and governors of {island.name}, island-wide or at a
+          specific place.
         </p>
       </div>
 
@@ -245,46 +246,46 @@ export default async function StewardsPage({
         </p>
       )}
 
-      {/* Steward cards */}
-      {stewards.length > 0 ? (
+      {/* Architect cards */}
+      {architects.length > 0 ? (
         <ul className="grid gap-3 sm:grid-cols-2">
-          {stewards.map((steward) => {
-            const place = steward.place_id
-              ? placeById.get(steward.place_id)
+          {architects.map((architect) => {
+            const place = architect.place_id
+              ? placeById.get(architect.place_id)
               : undefined;
-            const knowledge = stewardKnowledge(steward, places, assets);
+            const knowledge = architectKnowledge(architect, places, assets);
             return (
               <li
-                key={steward.id}
+                key={architect.id}
                 className="space-y-2 rounded-lg border border-gray-200 p-4 dark:border-gray-800"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-medium">
-                      {STEWARD_ROLE_ICONS[steward.role] ?? "🤝"} {steward.name}
+                      {ARCHITECT_ROLE_ICONS[architect.role] ?? "📐"} {architect.name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {formatRole(steward.role)} ·{" "}
-                      {steward.place_id
+                      {formatRole(architect.role)} ·{" "}
+                      {architect.place_id
                         ? `at ${place?.name ?? "a place"}`
                         : "island-wide"}{" "}
-                      · {steward.visibility}
+                      · {architect.visibility}
                     </p>
                   </div>
                   {isOwner && (
                     <div className="flex shrink-0 gap-2 text-xs">
                       <Link
-                        href={`/islands/${island.id}/stewards?edit=${steward.id}`}
+                        href={`/islands/${island.id}/architects?edit=${architect.id}`}
                         className="underline"
                       >
                         Edit
                       </Link>
-                      <form action={deleteSteward}>
+                      <form action={deleteArchitect}>
                         <input type="hidden" name="island_id" value={island.id} />
                         <input
                           type="hidden"
-                          name="steward_id"
-                          value={steward.id}
+                          name="architect_id"
+                          value={architect.id}
                         />
                         <button
                           type="submit"
@@ -296,9 +297,9 @@ export default async function StewardsPage({
                     </div>
                   )}
                 </div>
-                {steward.description && (
+                {architect.description && (
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {steward.description}
+                    {architect.description}
                   </p>
                 )}
                 <details className="text-xs text-gray-500">
@@ -336,9 +337,9 @@ export default async function StewardsPage({
                   </div>
                 </details>
                 <p className="text-xs text-gray-500">
-                  {steward.model_provider
-                    ? `${steward.model_provider}${
-                        steward.model_name ? ` · ${steward.model_name}` : ""
+                  {architect.model_provider
+                    ? `${architect.model_provider}${
+                        architect.model_name ? ` · ${architect.model_name}` : ""
                       } (not connected)`
                     : "No model configured"}
                 </p>
@@ -349,8 +350,8 @@ export default async function StewardsPage({
       ) : (
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {isOwner
-            ? "No stewards yet. Appoint your first one below."
-            : "No stewards have been shared with you on this island."}
+            ? "No architects yet. Appoint your first one below."
+            : "No architects have been shared with you on this island."}
         </p>
       )}
 
@@ -359,13 +360,13 @@ export default async function StewardsPage({
         <section className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium">
-              {editingSteward
-                ? `Edit "${editingSteward.name}"`
-                : "Appoint a steward"}
+              {editingArchitect
+                ? `Edit "${editingArchitect.name}"`
+                : "Appoint an architect"}
             </h2>
-            {editingSteward && (
+            {editingArchitect && (
               <Link
-                href={`/islands/${island.id}/stewards`}
+                href={`/islands/${island.id}/architects`}
                 className="text-sm underline"
               >
                 Cancel
@@ -373,23 +374,23 @@ export default async function StewardsPage({
             )}
           </div>
           <form
-            action={editingSteward ? updateSteward : createSteward}
+            action={editingArchitect ? updateArchitect : createArchitect}
             className="space-y-4"
           >
             <input type="hidden" name="island_id" value={island.id} />
-            {editingSteward && (
-              <input type="hidden" name="steward_id" value={editingSteward.id} />
+            {editingArchitect && (
+              <input type="hidden" name="architect_id" value={editingArchitect.id} />
             )}
-            <StewardFormFields
-              key={editingSteward?.id ?? "new"}
-              steward={editingSteward}
+            <ArchitectFormFields
+              key={editingArchitect?.id ?? "new"}
+              architect={editingArchitect}
               places={places}
             />
             <button
               type="submit"
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
             >
-              {editingSteward ? "Save changes" : "Appoint steward"}
+              {editingArchitect ? "Save changes" : "Appoint architect"}
             </button>
           </form>
         </section>

@@ -12,16 +12,18 @@ Supabase project ref: wprjvtyzicxtngvxvpqm
 - [x] **Email confirmation disabled** for this test run:
       Dashboard → Authentication → Sign In / Providers → Email →
       "Confirm email" OFF (otherwise signup detours through email)
-- [x] All six migrations applied **in this order** via SQL Editor
-      (paste each file's contents and Run, one at a time):
+- [x] All seven migrations applied **in this order** via SQL Editor
+      (paste each file's contents and Run, one at a time — or run
+      `setup-all.sql` once, which folds them all in):
   - [x] `20260610000000_islands_and_bridges.sql`
   - [x] `20260610010000_places.sql`
   - [x] `20260610020000_profiles_and_bridge_grants.sql`
   - [x] `20260610030000_assets.sql`
-  - [x] `20260610040000_stewards.sql`
+  - [x] `20260610040000_stewards.sql` (historical name; table is renamed below)
   - [x] `20260610050000_audit_and_provenance.sql`
+  - [x] `20260610060000_rename_stewards_to_architects.sql`
 - [x] Table Editor shows: `islands`, `bridges`, `places`, `profiles`,
-      `assets`, `stewards`, `audit_events` — each with RLS marked enabled
+      `assets`, `architects`, `audit_events` — each with RLS marked enabled
 - [x] `.env.local` filled with the project's URL and anon key
       (Dashboard → Project Settings → API)
 - [x] `npm run dev` starts; http://localhost:3000 shows the landing page
@@ -63,12 +65,12 @@ As OWNER — create this exact fixture (names matter for later checks):
       **private**
 - [x] On **Vault**: add asset **Secret Map** (note) — visibility
       **bridged** (deliberate: bridged asset on a private place)
-- [x] Appoint steward **Harbormaster** — island-wide, visibility **bridged**
-- [x] Appoint steward **Vaultkeeper** — assigned to Vault, visibility
+- [x] Appoint architect **Harbormaster** — island-wide, visibility **bridged**
+- [x] Appoint architect **Vaultkeeper** — assigned to Vault, visibility
       **bridged**
-- [x] Appoint steward **Confidant** — island-wide, visibility **private**
-- [x] Steward cards show knowledge ("Knows the island, 2 places · 3 assets"
-      for island-wide stewards)
+- [x] Appoint architect **Confidant** — island-wide, visibility **private**
+- [x] Architect cards show knowledge ("Knows the island, 2 places · 3 assets"
+      for island-wide architects)
 - [x] Edit and delete round-trip: edit Lighthouse's description, create a
       throwaway place **Shed** and delete it
 
@@ -88,13 +90,13 @@ As VISITOR:
 - [x] /dashboard shows **Saltwind** under "Across the bridges"
 - [x] Island page says "You've crossed a bridge…" — NOT "You are home."
 - [x] Map shows **Lighthouse** only — **Vault is absent**
-- [x] Stewards page shows **Harbormaster** only — Confidant (private) and
+- [x] Architects page shows **Harbormaster** only — Confidant (private) and
       Vaultkeeper (bridged but on a private place) are absent
 - [x] Harbormaster's knowledge shows only Lighthouse + **Welcome Note**
       (1 place · 1 asset) — not Owner Diary, not Vault, not Secret Map
 - [x] Lighthouse page shows **Welcome Note** only — Owner Diary absent
 - [x] **No owner controls anywhere**: no Build a place, no Bridges section,
-      no edit/delete on places or assets, no steward forms, no Ledger link
+      no edit/delete on places or assets, no architect forms, no Ledger link
 - [x] Direct-URL probes (copy ids from OWNER's browser):
   - [x] Vault's place URL → 404
   - [x] /islands/<id>/audit → 404
@@ -118,7 +120,7 @@ As OWNER, island page → 📜 Ledger:
 
 - [x] Every action from section 2–3 is present, newest first: places
       built/edited/removed (Shed shows "removed a place: Shed"), assets
-      added, stewards appointed, bridge raised
+      added, architects appointed, bridge raised
 - [x] Entries read "You …" with names, timestamps populated
 - [x] Metadata is names only — no asset content, no emails visible
 - [x] As VISITOR: the Ledger URL → 404 (checked in section 4)

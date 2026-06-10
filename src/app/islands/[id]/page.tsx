@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { IslandSilhouette } from "@/components/island-silhouette";
 import { PLACE_TYPES, PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
-  STEWARD_ROLE_ICONS,
-  type Steward,
-} from "@/lib/stewards";
+  ARCHITECT_ROLE_ICONS,
+  type Architect,
+} from "@/lib/architects";
 import {
   createPlace,
   deletePlace,
@@ -170,18 +170,18 @@ export default async function IslandPage({
     ? places.find((place) => place.id === edit)
     : undefined;
 
-  // Stewards present on the island (RLS-filtered for bridged visitors).
-  const { data: stewardData } = await supabase
-    .from("stewards")
+  // Architects present on the island (RLS-filtered for bridged visitors).
+  const { data: architectData } = await supabase
+    .from("architects")
     .select("id, name, role, place_id")
     .eq("island_id", island.id)
     .order("created_at", { ascending: true });
 
-  const stewards = (stewardData ?? []) as Pick<
-    Steward,
+  const architects = (architectData ?? []) as Pick<
+    Architect,
     "id" | "name" | "role" | "place_id"
   >[];
-  const shoreStewards = stewards.filter((steward) => !steward.place_id);
+  const shoreArchitects = architects.filter((architect) => !architect.place_id);
 
   // Owner-only: active bridges for this island, labeled with grantee emails.
   let bridges: BridgeWithEmail[] = [];
@@ -217,10 +217,10 @@ export default async function IslandPage({
         </Link>
         <span className="flex gap-4">
           <Link
-            href={`/islands/${island.id}/stewards`}
+            href={`/islands/${island.id}/architects`}
             className="text-gray-600 underline dark:text-gray-400"
           >
-            🤝 Stewards ({stewards.length})
+            📐 Architects ({architects.length})
           </Link>
           {isOwner && (
             <Link
@@ -284,15 +284,15 @@ export default async function IslandPage({
           </p>
         )}
 
-        {shoreStewards.length > 0 && (
+        {shoreArchitects.length > 0 && (
           <div className="absolute bottom-3 left-3 flex max-w-[80%] flex-wrap gap-1.5">
-            {shoreStewards.map((steward) => (
+            {shoreArchitects.map((architect) => (
               <span
-                key={steward.id}
-                title={steward.name}
+                key={architect.id}
+                title={architect.name}
                 className="rounded-full bg-black/45 px-2 py-0.5 text-xs text-white"
               >
-                {STEWARD_ROLE_ICONS[steward.role] ?? "🤝"} {steward.name}
+                {ARCHITECT_ROLE_ICONS[architect.role] ?? "📐"} {architect.name}
               </span>
             ))}
           </div>

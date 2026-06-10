@@ -10,10 +10,10 @@ app (see [the constitution](bridges-constitution.md), principle 1).
 | Layer | What it holds |
 | ----- | ------------- |
 | Identity | Supabase Auth (email + password); `profiles` mirrors `auth.users` for email→id lookup. |
-| Structure | `islands` → `places` → `assets`; `stewards` attach to an island or a place. Each island has a deterministic visual identity (`src/lib/island-identity.ts`). |
+| Structure | `islands` → `places` → `assets`; `architects` attach to an island or a place. Each island has a deterministic visual identity (`src/lib/island-identity.ts`). |
 | Access | `bridges` grants + `private`/`bridged` visibility flags, enforced entirely by RLS policies in `supabase/migrations/`. |
 | Trust | Append-only `audit_events` ledger + asset provenance fields ([provenance.md](provenance.md)). |
-| Stewards | Permissioned interfaces to island assets; knowledge is derived per request, never stored ([steward-knowledge.md](steward-knowledge.md)). No model is connected yet. |
+| Architects | Permissioned interfaces to island assets; knowledge is derived per request, never stored ([architect-knowledge.md](architect-knowledge.md)). No model is connected yet. |
 
 ## Responsibility boundary
 

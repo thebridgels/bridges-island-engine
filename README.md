@@ -62,23 +62,27 @@ permissions but can only restrict further: a bridged user sees an asset only
 when they hold a bridge to the island, the place is `bridged`, *and* the asset
 is `bridged`. An asset can never be more visible than the place it sits on.
 
-## Stewards
+## Architects
 
-Each island can appoint **stewards** — named caretakers with a role
-(Librarian, Archivist, Curator, Researcher, Builder, Teacher, Receptionist,
-Guardian) — managed from `/islands/<id>/stewards`. A steward is either
-island-wide or assigned to a specific place; place-scoped stewards also show
-up on that place's page. Stewards store an optional `model_provider` /
+Each island can appoint **architects** — the persistent AI presence that
+helps an owner design, build, organize, govern, protect, and present an
+island or place. An architect is not the owner, has no authority above the
+owner, and operates only within the permissions granted by the owner and
+enforced by the island. Each has a role (Librarian, Archivist, Curator,
+Researcher, Builder, Teacher, Receptionist, Guardian) and is managed from
+`/islands/<id>/architects`. An architect is either
+island-wide or assigned to a specific place; place-scoped architects also show
+up on that place's page. Architects store an optional `model_provider` /
 `model_name` as configuration only — **no external model is connected yet**;
 this phase is data model and interface. Visibility follows the same layering
-as assets: bridged users see only `bridged` stewards that are island-wide or
+as assets: bridged users see only `bridged` architects that are island-wide or
 on a `bridged` place.
 
-Stewards do not own knowledge — they are permissioned interfaces to island
-assets. A steward's knowledge is derived at read time from the places and
-assets it may access (the whole island for island stewards, a single place
-for place stewards), always through the viewer's RLS-filtered session. There
-is no knowledge table. See [docs/steward-knowledge.md](docs/steward-knowledge.md).
+Architects do not own knowledge — they are permissioned interfaces to island
+assets. An architect's knowledge is derived at read time from the places and
+assets it may access (the whole island for island architects, a single place
+for place architects), always through the viewer's RLS-filtered session. There
+is no knowledge table. See [docs/architect-knowledge.md](docs/architect-knowledge.md).
 
 ## Bridges
 
@@ -104,7 +108,7 @@ application promises.
 Every asset carries provenance — `source_type` (original, uploaded,
 ai_generated, imported, linked), a `created_by_ai` flag, and an optional
 `source_note` — shown wherever the asset is shown. Every major owner action
-(places, assets, stewards, bridges) is recorded in an append-only
+(places, assets, architects, bridges) is recorded in an append-only
 `audit_events` ledger, readable only by the island owner at
 `/islands/<id>/audit`. Bridged users cannot read audit events. Metadata is
 minimal and non-sensitive (display names only). See
@@ -126,10 +130,10 @@ Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_
   can read an asset only when both the place and the asset are `bridged`. A
   composite foreign key guarantees `assets.island_id` always matches the
   place's island.
-- **stewards** — only the island owner can create/update/delete; bridged
-  users can read a steward only when it is `bridged` and either island-wide
+- **architects** — only the island owner can create/update/delete; bridged
+  users can read an architect only when it is `bridged` and either island-wide
   or on a `bridged` place. The same composite foreign key pattern keeps
-  place-scoped stewards on the right island.
+  place-scoped architects on the right island.
 - **audit_events** — only the island owner can read; inserts must come from
   the owner acting as themselves; no update/delete policies, so the ledger
   is append-only through the API.

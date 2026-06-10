@@ -6,12 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/audit";
 import {
   MODEL_PROVIDERS,
-  STEWARD_ROLES,
+  ARCHITECT_ROLES,
   type ModelProvider,
-  type StewardRole,
-} from "@/lib/stewards";
+  type ArchitectRole,
+} from "@/lib/architects";
 
-function stewardFields(formData: FormData) {
+function architectFields(formData: FormData) {
   const rawRole = String(formData.get("role") ?? "");
   const rawProvider = String(formData.get("model_provider") ?? "");
   const description = String(formData.get("description") ?? "").trim();
@@ -20,8 +20,8 @@ function stewardFields(formData: FormData) {
 
   return {
     name: String(formData.get("name") ?? "").trim(),
-    role: (STEWARD_ROLES as readonly string[]).includes(rawRole)
-      ? (rawRole as StewardRole)
+    role: (ARCHITECT_ROLES as readonly string[]).includes(rawRole)
+      ? (rawRole as ArchitectRole)
       : "librarian",
     description: description || null,
     place_id: placeId || null,
@@ -33,20 +33,20 @@ function stewardFields(formData: FormData) {
   };
 }
 
-function stewardsPath(islandId: string) {
-  return `/islands/${islandId}/stewards`;
+function architectsPath(islandId: string) {
+  return `/islands/${islandId}/architects`;
 }
 
 function fail(islandId: string, message: string): never {
-  redirect(`${stewardsPath(islandId)}?error=${encodeURIComponent(message)}`);
+  redirect(`${architectsPath(islandId)}?error=${encodeURIComponent(message)}`);
 }
 
-export async function createSteward(formData: FormData) {
+export async function createArchitect(formData: FormData) {
   const islandId = String(formData.get("island_id") ?? "");
   if (!islandId) redirect("/dashboard");
 
-  const fields = stewardFields(formData);
-  if (!fields.name) fail(islandId, "Steward name is required.");
+  const fields = architectFields(formData);
+  if (!fields.name) fail(islandId, "Architect name is required.");
 
   const supabase = await createClient();
   const {
@@ -55,7 +55,7 @@ export async function createSteward(formData: FormData) {
   if (!user) redirect("/login");
 
   const { data: created, error } = await supabase
-    .from("stewards")
+    .from("architects")
     .insert({
       island_id: islandId,
       owner_id: user.id,
@@ -68,67 +68,67 @@ export async function createSteward(formData: FormData) {
 
   await logAuditEvent(supabase, {
     islandId,
-    action: "steward.created",
-    targetType: "steward",
+    action: "architect.created",
+    targetType: "architect",
     targetId: created.id,
     metadata: { name: fields.name, role: fields.role },
   });
 
-  revalidatePath(stewardsPath(islandId));
+  revalidatePath(architectsPath(islandId));
 }
 
-export async function updateSteward(formData: FormData) {
+export async function updateArchitect(formData: FormData) {
   const islandId = String(formData.get("island_id") ?? "");
-  const stewardId = String(formData.get("steward_id") ?? "");
-  if (!islandId || !stewardId) redirect("/dashboard");
+  const architectId = String(formData.get("architect_id") ?? "");
+  if (!islandId || !architectId) redirect("/dashboard");
 
-  const fields = stewardFields(formData);
-  if (!fields.name) fail(islandId, "Steward name is required.");
+  const fields = architectFields(formData);
+  if (!fields.name) fail(islandId, "Architect name is required.");
 
   const supabase = await createClient();
   const { error } = await supabase
-    .from("stewards")
+    .from("architects")
     .update(fields)
-    .eq("id", stewardId);
+    .eq("id", architectId);
 
   if (error) fail(islandId, error.message);
 
   await logAuditEvent(supabase, {
     islandId,
-    action: "steward.updated",
-    targetType: "steward",
-    targetId: stewardId,
+    action: "architect.updated",
+    targetType: "architect",
+    targetId: architectId,
     metadata: { name: fields.name, role: fields.role },
   });
 
-  revalidatePath(stewardsPath(islandId));
-  redirect(stewardsPath(islandId));
+  revalidatePath(architectsPath(islandId));
+  redirect(architectsPath(islandId));
 }
 
-export async function deleteSteward(formData: FormData) {
+export async function deleteArchitect(formData: FormData) {
   const islandId = String(formData.get("island_id") ?? "");
-  const stewardId = String(formData.get("steward_id") ?? "");
-  if (!islandId || !stewardId) redirect("/dashboard");
+  const architectId = String(formData.get("architect_id") ?? "");
+  if (!islandId || !architectId) redirect("/dashboard");
 
   const supabase = await createClient();
 
-  const { data: steward } = await supabase
-    .from("stewards")
+  const { data: architect } = await supabase
+    .from("architects")
     .select("name")
-    .eq("id", stewardId)
+    .eq("id", architectId)
     .maybeSingle();
 
-  const { error } = await supabase.from("stewards").delete().eq("id", stewardId);
+  const { error } = await supabase.from("architects").delete().eq("id", architectId);
 
   if (error) fail(islandId, error.message);
 
   await logAuditEvent(supabase, {
     islandId,
-    action: "steward.deleted",
-    targetType: "steward",
-    targetId: stewardId,
-    metadata: steward?.name ? { name: steward.name } : {},
+    action: "architect.deleted",
+    targetType: "architect",
+    targetId: architectId,
+    metadata: architect?.name ? { name: architect.name } : {},
   });
 
-  revalidatePath(stewardsPath(islandId));
+  revalidatePath(architectsPath(islandId));
 }
