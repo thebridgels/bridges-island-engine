@@ -6,7 +6,7 @@ unless said so.
 ## 1. Implemented
 
 All features below are built, linted, and building. Operational note: the
-five SQL migrations have not yet been applied to a live Supabase project,
+six SQL migrations have not yet been applied to a live Supabase project,
 and `.env.local` still holds placeholder credentials — the app has not yet
 been exercised end-to-end against a real database.
 
@@ -50,9 +50,10 @@ been exercised end-to-end against a real database.
 ## 2. Immediate Next Steps (recommended, not yet implemented)
 
 1. **Go live against a real Supabase project.** Create the project, apply
-   the five migrations, fill `.env.local`, and walk every flow manually
+   the six migrations, fill `.env.local`, and walk every flow manually
    (two accounts: owner + bridged visitor). Everything below depends on
-   this; RLS policies are written but have never been executed.
+   this; RLS policies are written but have never been executed. Checklist:
+   [manual-test-plan.md](manual-test-plan.md).
 2. **Connect stewards to a real model (Claude first).** Server-side
    conversation route where prompt context is assembled exclusively from
    `stewardKnowledge()` for the requesting session, steward replies are
