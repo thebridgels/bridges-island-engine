@@ -45,16 +45,27 @@ email + password only (no OAuth, no magic links).
   Pages also re-check the user server-side as defense in depth.
 - Every island row has `owner_id → auth.users.id`.
 
+## Places
+
+Each island has a map of **places** (name, type, description, position, and
+visibility), managed from the island detail page (`/islands/<id>`). Places are
+rendered as markers on a simple percentage-positioned map plus cards below it.
+A place's `visibility` is either `private` (owner only) or `bridged` (also
+readable by users with a bridge to the island).
+
 ## Row Level Security
 
-Defined in [the migration](supabase/migrations/20260610000000_islands_and_bridges.sql):
+Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_bridges.sql)
+and [places](supabase/migrations/20260610010000_places.sql) migrations:
 
 - **islands** — owners have full access; other users can *read* an island only
   if a bridge grants them access. Inserts must set `owner_id` to the caller.
 - **bridges** — only the island owner can create them; the owner can revoke
   and the grantee can remove their own access.
+- **places** — only the island owner can create/update/delete; bridged users
+  can read a place only when its `visibility` is `bridged`.
 - Policies use `security definer` helper functions (`has_bridge_access`,
-  `is_island_owner`) to avoid recursive RLS between the two tables.
+  `is_island_owner`) to avoid recursive RLS between tables.
 
 All data access goes through the user's session (anon key + RLS); there is no
 service-role key in the app.

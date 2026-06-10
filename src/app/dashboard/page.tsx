@@ -9,6 +9,7 @@ type Island = {
   name: string;
   owner_id: string;
   created_at: string;
+  places: { count: number }[];
 };
 
 export default async function DashboardPage({
@@ -30,7 +31,7 @@ export default async function DashboardPage({
   // RLS returns islands the user owns plus islands shared with them via a bridge.
   const { data: islands, error: fetchError } = await supabase
     .from("islands")
-    .select("id, name, owner_id, created_at")
+    .select("id, name, owner_id, created_at, places(count)")
     .order("created_at", { ascending: false });
 
   return (
@@ -85,6 +86,8 @@ export default async function DashboardPage({
               >
                 <span className="font-medium">{island.name}</span>
                 <span className="text-xs text-gray-500">
+                  {island.places[0]?.count ?? 0}{" "}
+                  {(island.places[0]?.count ?? 0) === 1 ? "place" : "places"} ·{" "}
                   {island.owner_id === user.id ? "yours" : "shared with you"}
                 </span>
               </Link>
