@@ -215,12 +215,22 @@ export default async function IslandPage({
         >
           ← The sea
         </Link>
-        <Link
-          href={`/islands/${island.id}/stewards`}
-          className="text-gray-600 underline dark:text-gray-400"
-        >
-          🤝 Stewards ({stewards.length})
-        </Link>
+        <span className="flex gap-4">
+          <Link
+            href={`/islands/${island.id}/stewards`}
+            className="text-gray-600 underline dark:text-gray-400"
+          >
+            🤝 Stewards ({stewards.length})
+          </Link>
+          {isOwner && (
+            <Link
+              href={`/islands/${island.id}/audit`}
+              className="text-gray-600 underline dark:text-gray-400"
+            >
+              📜 Ledger
+            </Link>
+          )}
+        </span>
       </div>
 
       {error && (

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { logAuditEvent } from "@/lib/audit";
 import {
   MODEL_PROVIDERS,
   STEWARD_ROLES,
@@ -53,13 +54,26 @@ export async function createSteward(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase.from("stewards").insert({
-    island_id: islandId,
-    owner_id: user.id,
-    ...fields,
-  });
+  const { data: created, error } = await supabase
+    .from("stewards")
+    .insert({
+      island_id: islandId,
+      owner_id: user.id,
+      ...fields,
+    })
+    .select("id")
+    .single();
 
   if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "steward.created",
+    targetType: "steward",
+    targetId: created.id,
+    metadata: { name: fields.name, role: fields.role },
+  });
+
   revalidatePath(stewardsPath(islandId));
 }
 
@@ -78,6 +92,15 @@ export async function updateSteward(formData: FormData) {
     .eq("id", stewardId);
 
   if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "steward.updated",
+    targetType: "steward",
+    targetId: stewardId,
+    metadata: { name: fields.name, role: fields.role },
+  });
+
   revalidatePath(stewardsPath(islandId));
   redirect(stewardsPath(islandId));
 }
@@ -88,8 +111,24 @@ export async function deleteSteward(formData: FormData) {
   if (!islandId || !stewardId) redirect("/dashboard");
 
   const supabase = await createClient();
+
+  const { data: steward } = await supabase
+    .from("stewards")
+    .select("name")
+    .eq("id", stewardId)
+    .maybeSingle();
+
   const { error } = await supabase.from("stewards").delete().eq("id", stewardId);
 
   if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "steward.deleted",
+    targetType: "steward",
+    targetId: stewardId,
+    metadata: steward?.name ? { name: steward.name } : {},
+  });
+
   revalidatePath(stewardsPath(islandId));
 }

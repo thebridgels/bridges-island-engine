@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { IslandSilhouette } from "@/components/island-silhouette";
-import { ASSET_TYPES, ASSET_TYPE_ICONS, type Asset } from "@/lib/assets";
+import {
+  ASSET_SOURCE_LABELS,
+  ASSET_SOURCE_TYPES,
+  ASSET_TYPES,
+  ASSET_TYPE_ICONS,
+  type Asset,
+} from "@/lib/assets";
 import { PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
   STEWARD_ROLE_ICONS,
@@ -106,6 +112,52 @@ function AssetFormFields({ asset }: { asset?: Asset }) {
           </select>
         </div>
       </div>
+
+      <fieldset className="space-y-3 rounded-md border border-gray-200 p-3 dark:border-gray-800">
+        <legend className="px-1 text-sm font-medium">Provenance</legend>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label htmlFor="source_type" className="block text-sm font-medium">
+              Source
+            </label>
+            <select
+              id="source_type"
+              name="source_type"
+              defaultValue={asset?.source_type ?? "original"}
+              className={inputClass}
+            >
+              {ASSET_SOURCE_TYPES.map((sourceType) => (
+                <option key={sourceType} value={sourceType}>
+                  {ASSET_SOURCE_LABELS[sourceType]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="source_note" className="block text-sm font-medium">
+              Source note{" "}
+              <span className="font-normal text-gray-500">(optional)</span>
+            </label>
+            <input
+              id="source_note"
+              name="source_note"
+              maxLength={500}
+              defaultValue={asset?.source_note ?? ""}
+              placeholder="e.g. scanned from the family archive"
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="created_by_ai"
+            defaultChecked={asset?.created_by_ai ?? false}
+            className="h-4 w-4"
+          />
+          Made with AI
+        </label>
+      </fieldset>
     </>
   );
 }
@@ -162,7 +214,7 @@ export default async function PlacePage({
   const { data } = await supabase
     .from("assets")
     .select(
-      "id, island_id, place_id, owner_id, title, description, asset_type, content_text, url, visibility, created_at, updated_at"
+      "id, island_id, place_id, owner_id, title, description, asset_type, content_text, url, visibility, source_type, created_by_ai, source_note, created_at, updated_at"
     )
     .eq("place_id", place.id)
     .order("created_at", { ascending: true });
@@ -236,9 +288,16 @@ export default async function PlacePage({
                       {ASSET_TYPE_ICONS[asset.asset_type] ?? "📦"} {asset.title}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {asset.asset_type} · {asset.visibility} · updated{" "}
+                      {asset.asset_type} · {asset.visibility} ·{" "}
+                      {ASSET_SOURCE_LABELS[asset.source_type] ?? asset.source_type}
+                      {asset.created_by_ai && " · 🤖 AI"} · updated{" "}
                       {new Date(asset.updated_at).toLocaleDateString()}
                     </p>
+                    {asset.source_note && (
+                      <p className="text-xs italic text-gray-500">
+                        {asset.source_note}
+                      </p>
+                    )}
                   </div>
                   {isOwner && (
                     <div className="flex shrink-0 gap-2 text-xs">

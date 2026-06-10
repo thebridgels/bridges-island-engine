@@ -91,6 +91,17 @@ grantee's user id, never the raw email. Profiles are not broadly readable —
 users see their own profile, and owners see profiles of users bridged to
 their islands.
 
+## Trust layer
+
+Every asset carries provenance — `source_type` (original, uploaded,
+ai_generated, imported, linked), a `created_by_ai` flag, and an optional
+`source_note` — shown wherever the asset is shown. Every major owner action
+(places, assets, stewards, bridges) is recorded in an append-only
+`audit_events` ledger, readable only by the island owner at
+`/islands/<id>/audit`. Bridged users cannot read audit events. Metadata is
+minimal and non-sensitive (display names only). See
+[docs/provenance.md](docs/provenance.md).
+
 ## Row Level Security
 
 Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_bridges.sql),
@@ -111,6 +122,9 @@ Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_
   users can read a steward only when it is `bridged` and either island-wide
   or on a `bridged` place. The same composite foreign key pattern keeps
   place-scoped stewards on the right island.
+- **audit_events** — only the island owner can read; inserts must come from
+  the owner acting as themselves; no update/delete policies, so the ledger
+  is append-only through the API.
 - Policies use `security definer` helper functions (`has_bridge_access`,
   `is_island_owner`) to avoid recursive RLS between tables.
 

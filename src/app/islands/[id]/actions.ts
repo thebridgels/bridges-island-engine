@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { logAuditEvent } from "@/lib/audit";
 import { PLACE_TYPES, type PlaceType } from "@/lib/places";
 
 function placeFields(formData: FormData) {
@@ -39,11 +40,22 @@ export async function createPlace(formData: FormData) {
   if (!fields.name) fail(islandId, "Place name is required.");
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: created, error } = await supabase
     .from("places")
-    .insert({ island_id: islandId, ...fields });
+    .insert({ island_id: islandId, ...fields })
+    .select("id")
+    .single();
 
   if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "place.created",
+    targetType: "place",
+    targetId: created.id,
+    metadata: { name: fields.name },
+  });
+
   revalidatePath(`/islands/${islandId}`);
 }
 
@@ -62,8 +74,45 @@ export async function updatePlace(formData: FormData) {
     .eq("id", placeId);
 
   if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "place.updated",
+    targetType: "place",
+    targetId: placeId,
+    metadata: { name: fields.name },
+  });
+
   revalidatePath(`/islands/${islandId}`);
   redirect(`/islands/${islandId}`);
+}
+
+export async function deletePlace(formData: FormData) {
+  const islandId = String(formData.get("island_id") ?? "");
+  const placeId = String(formData.get("place_id") ?? "");
+  if (!islandId || !placeId) redirect("/dashboard");
+
+  const supabase = await createClient();
+
+  const { data: place } = await supabase
+    .from("places")
+    .select("name")
+    .eq("id", placeId)
+    .maybeSingle();
+
+  const { error } = await supabase.from("places").delete().eq("id", placeId);
+
+  if (error) fail(islandId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "place.deleted",
+    targetType: "place",
+    targetId: placeId,
+    metadata: place?.name ? { name: place.name } : {},
+  });
+
+  revalidatePath(`/islands/${islandId}`);
 }
 
 export async function grantBridge(formData: FormData) {
@@ -89,11 +138,15 @@ export async function grantBridge(formData: FormData) {
   if (targetId === user.id) fail(islandId, "You already own this island.");
 
   // RLS rejects this insert unless the caller owns the island.
-  const { error } = await supabase.from("bridges").insert({
-    island_id: islandId,
-    granted_to: targetId,
-    granted_by: user.id,
-  });
+  const { data: created, error } = await supabase
+    .from("bridges")
+    .insert({
+      island_id: islandId,
+      granted_to: targetId,
+      granted_by: user.id,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     fail(
@@ -103,6 +156,13 @@ export async function grantBridge(formData: FormData) {
         : error.message
     );
   }
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "bridge.granted",
+    targetType: "bridge",
+    targetId: created.id,
+  });
 
   revalidatePath(`/islands/${islandId}`);
 }
@@ -116,17 +176,13 @@ export async function revokeBridge(formData: FormData) {
   const { error } = await supabase.from("bridges").delete().eq("id", bridgeId);
 
   if (error) fail(islandId, error.message);
-  revalidatePath(`/islands/${islandId}`);
-}
 
-export async function deletePlace(formData: FormData) {
-  const islandId = String(formData.get("island_id") ?? "");
-  const placeId = String(formData.get("place_id") ?? "");
-  if (!islandId || !placeId) redirect("/dashboard");
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "bridge.revoked",
+    targetType: "bridge",
+    targetId: bridgeId,
+  });
 
-  const supabase = await createClient();
-  const { error } = await supabase.from("places").delete().eq("id", placeId);
-
-  if (error) fail(islandId, error.message);
   revalidatePath(`/islands/${islandId}`);
 }

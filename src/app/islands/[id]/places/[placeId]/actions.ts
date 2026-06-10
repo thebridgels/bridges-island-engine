@@ -3,13 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ASSET_TYPES, type AssetType } from "@/lib/assets";
+import { logAuditEvent } from "@/lib/audit";
+import {
+  ASSET_SOURCE_TYPES,
+  ASSET_TYPES,
+  type AssetSourceType,
+  type AssetType,
+} from "@/lib/assets";
 
 function assetFields(formData: FormData) {
   const rawType = String(formData.get("asset_type") ?? "");
+  const rawSourceType = String(formData.get("source_type") ?? "");
   const description = String(formData.get("description") ?? "").trim();
   const contentText = String(formData.get("content_text") ?? "").trim();
   const url = String(formData.get("url") ?? "").trim();
+  const sourceNote = String(formData.get("source_note") ?? "").trim();
 
   return {
     title: String(formData.get("title") ?? "").trim(),
@@ -20,6 +28,11 @@ function assetFields(formData: FormData) {
     content_text: contentText || null,
     url: url || null,
     visibility: formData.get("visibility") === "bridged" ? "bridged" : "private",
+    source_type: (ASSET_SOURCE_TYPES as readonly string[]).includes(rawSourceType)
+      ? (rawSourceType as AssetSourceType)
+      : "original",
+    created_by_ai: formData.get("created_by_ai") === "on",
+    source_note: sourceNote || null,
   };
 }
 
@@ -45,14 +58,27 @@ export async function createAsset(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase.from("assets").insert({
-    island_id: islandId,
-    place_id: placeId,
-    owner_id: user.id,
-    ...fields,
-  });
+  const { data: created, error } = await supabase
+    .from("assets")
+    .insert({
+      island_id: islandId,
+      place_id: placeId,
+      owner_id: user.id,
+      ...fields,
+    })
+    .select("id")
+    .single();
 
   if (error) fail(islandId, placeId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "asset.created",
+    targetType: "asset",
+    targetId: created.id,
+    metadata: { title: fields.title, source_type: fields.source_type },
+  });
+
   revalidatePath(placePath(islandId, placeId));
 }
 
@@ -72,6 +98,15 @@ export async function updateAsset(formData: FormData) {
     .eq("id", assetId);
 
   if (error) fail(islandId, placeId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "asset.updated",
+    targetType: "asset",
+    targetId: assetId,
+    metadata: { title: fields.title },
+  });
+
   revalidatePath(placePath(islandId, placeId));
   redirect(placePath(islandId, placeId));
 }
@@ -83,8 +118,24 @@ export async function deleteAsset(formData: FormData) {
   if (!islandId || !placeId || !assetId) redirect("/dashboard");
 
   const supabase = await createClient();
+
+  const { data: asset } = await supabase
+    .from("assets")
+    .select("title")
+    .eq("id", assetId)
+    .maybeSingle();
+
   const { error } = await supabase.from("assets").delete().eq("id", assetId);
 
   if (error) fail(islandId, placeId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "asset.deleted",
+    targetType: "asset",
+    targetId: assetId,
+    metadata: asset?.title ? { title: asset.title } : {},
+  });
+
   revalidatePath(placePath(islandId, placeId));
 }
