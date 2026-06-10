@@ -6,7 +6,20 @@ import {
   PLACE_TYPE_ICONS,
   type Place,
 } from "@/lib/places";
-import { createPlace, deletePlace, updatePlace } from "./actions";
+import {
+  createPlace,
+  deletePlace,
+  grantBridge,
+  revokeBridge,
+  updatePlace,
+} from "./actions";
+
+type BridgeWithEmail = {
+  id: string;
+  granted_to: string;
+  created_at: string;
+  email: string;
+};
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
@@ -156,6 +169,29 @@ export default async function IslandPage({
     ? places.find((place) => place.id === edit)
     : undefined;
 
+  // Owner-only: active bridges for this island, labeled with grantee emails.
+  let bridges: BridgeWithEmail[] = [];
+  if (isOwner) {
+    const { data: bridgeRows } = await supabase
+      .from("bridges")
+      .select("id, granted_to, created_at")
+      .eq("island_id", island.id)
+      .order("created_at", { ascending: true });
+
+    const granteeIds = (bridgeRows ?? []).map((bridge) => bridge.granted_to);
+    const { data: profileRows } = granteeIds.length
+      ? await supabase.from("profiles").select("id, email").in("id", granteeIds)
+      : { data: [] };
+
+    const emailById = new Map(
+      (profileRows ?? []).map((profile) => [profile.id, profile.email])
+    );
+    bridges = (bridgeRows ?? []).map((bridge) => ({
+      ...bridge,
+      email: emailById.get(bridge.granted_to) ?? bridge.granted_to,
+    }));
+  }
+
   return (
     <main className="mx-auto max-w-2xl space-y-8 p-6">
       <div>
@@ -288,6 +324,68 @@ export default async function IslandPage({
               className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
             >
               {editingPlace ? "Save changes" : "Add place"}
+            </button>
+          </form>
+        </section>
+      )}
+
+      {/* Bridges management (owner only) */}
+      {isOwner && (
+        <section className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+          <div>
+            <h2 className="text-lg font-medium">Bridges</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Bridged users can view this island and any place marked{" "}
+              <span className="font-medium">bridged</span>.
+            </p>
+          </div>
+
+          {bridges.length > 0 ? (
+            <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+              {bridges.map((bridge) => (
+                <li
+                  key={bridge.id}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{bridge.email}</p>
+                    <p className="text-xs text-gray-500">
+                      since {new Date(bridge.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <form action={revokeBridge}>
+                    <input type="hidden" name="island_id" value={island.id} />
+                    <input type="hidden" name="bridge_id" value={bridge.id} />
+                    <button
+                      type="submit"
+                      className="text-xs text-red-600 underline dark:text-red-400"
+                    >
+                      Revoke
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              No bridges yet. This island is fully private.
+            </p>
+          )}
+
+          <form action={grantBridge} className="flex gap-2">
+            <input type="hidden" name="island_id" value={island.id} />
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="user@example.com"
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+            >
+              Grant bridge
             </button>
           </form>
         </section>

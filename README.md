@@ -53,10 +53,22 @@ rendered as markers on a simple percentage-positioned map plus cards below it.
 A place's `visibility` is either `private` (owner only) or `bridged` (also
 readable by users with a bridge to the island).
 
+## Bridges
+
+Island owners manage bridges from the island detail page: grant access by
+entering another user's email, see the list of active bridges, and revoke
+them. Email → user id resolution goes through a `security definer` function
+backed by a `profiles` table that a trigger keeps in sync with `auth.users`
+(the `auth` schema itself is not client-queryable). Bridges always store the
+grantee's user id, never the raw email. Profiles are not broadly readable —
+users see their own profile, and owners see profiles of users bridged to
+their islands.
+
 ## Row Level Security
 
-Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_bridges.sql)
-and [places](supabase/migrations/20260610010000_places.sql) migrations:
+Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_bridges.sql),
+[places](supabase/migrations/20260610010000_places.sql), and
+[profiles](supabase/migrations/20260610020000_profiles_and_bridge_grants.sql) migrations:
 
 - **islands** — owners have full access; other users can *read* an island only
   if a bridge grants them access. Inserts must set `owner_id` to the caller.

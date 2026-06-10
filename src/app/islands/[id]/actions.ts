@@ -66,6 +66,59 @@ export async function updatePlace(formData: FormData) {
   redirect(`/islands/${islandId}`);
 }
 
+export async function grantBridge(formData: FormData) {
+  const islandId = String(formData.get("island_id") ?? "");
+  if (!islandId) redirect("/dashboard");
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) fail(islandId, "Email is required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: targetId, error: lookupError } = await supabase.rpc(
+    "lookup_user_id_by_email",
+    { lookup_email: email }
+  );
+
+  if (lookupError) fail(islandId, lookupError.message);
+  if (!targetId) fail(islandId, `No user found with email "${email}".`);
+  if (targetId === user.id) fail(islandId, "You already own this island.");
+
+  // RLS rejects this insert unless the caller owns the island.
+  const { error } = await supabase.from("bridges").insert({
+    island_id: islandId,
+    granted_to: targetId,
+    granted_by: user.id,
+  });
+
+  if (error) {
+    fail(
+      islandId,
+      error.code === "23505"
+        ? "That user already has a bridge to this island."
+        : error.message
+    );
+  }
+
+  revalidatePath(`/islands/${islandId}`);
+}
+
+export async function revokeBridge(formData: FormData) {
+  const islandId = String(formData.get("island_id") ?? "");
+  const bridgeId = String(formData.get("bridge_id") ?? "");
+  if (!islandId || !bridgeId) redirect("/dashboard");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("bridges").delete().eq("id", bridgeId);
+
+  if (error) fail(islandId, error.message);
+  revalidatePath(`/islands/${islandId}`);
+}
+
 export async function deletePlace(formData: FormData) {
   const islandId = String(formData.get("island_id") ?? "");
   const placeId = String(formData.get("place_id") ?? "");
