@@ -159,12 +159,12 @@ export default async function IslandPage({
   const { data } = await supabase
     .from("places")
     .select(
-      "id, island_id, name, type, description, position_x, position_y, visibility, created_at"
+      "id, island_id, name, type, description, position_x, position_y, visibility, created_at, assets(count)"
     )
     .eq("island_id", island.id)
     .order("created_at", { ascending: true });
 
-  const places = (data ?? []) as Place[];
+  const places = (data ?? []) as (Place & { assets: { count: number }[] })[];
   const editingPlace = isOwner
     ? places.find((place) => place.id === edit)
     : undefined;
@@ -251,12 +251,16 @@ export default async function IslandPage({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium">
+                    <Link
+                      href={`/islands/${island.id}/places/${place.id}`}
+                      className="font-medium hover:underline"
+                    >
                       {PLACE_TYPE_ICONS[place.type] ?? "📍"} {place.name}
-                    </p>
+                    </Link>
                     <p className="text-xs text-gray-500">
                       {place.type} · ({place.position_x}, {place.position_y}) ·{" "}
-                      {place.visibility}
+                      {place.visibility} · {place.assets[0]?.count ?? 0}{" "}
+                      {(place.assets[0]?.count ?? 0) === 1 ? "asset" : "assets"}
                     </p>
                   </div>
                   {isOwner && (

@@ -53,6 +53,15 @@ rendered as markers on a simple percentage-positioned map plus cards below it.
 A place's `visibility` is either `private` (owner only) or `bridged` (also
 readable by users with a bridge to the island).
 
+## Assets
+
+Each place has **assets** (document, image, link, note, or file) with a title,
+optional description, text content, and URL, managed from the place view
+(`/islands/<id>/places/<placeId>`). Asset visibility inherits island
+permissions but can only restrict further: a bridged user sees an asset only
+when they hold a bridge to the island, the place is `bridged`, *and* the asset
+is `bridged`. An asset can never be more visible than the place it sits on.
+
 ## Bridges
 
 Island owners manage bridges from the island detail page: grant access by
@@ -76,6 +85,10 @@ Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_
   and the grantee can remove their own access.
 - **places** — only the island owner can create/update/delete; bridged users
   can read a place only when its `visibility` is `bridged`.
+- **assets** — only the island owner can create/update/delete; bridged users
+  can read an asset only when both the place and the asset are `bridged`. A
+  composite foreign key guarantees `assets.island_id` always matches the
+  place's island.
 - Policies use `security definer` helper functions (`has_bridge_access`,
   `is_island_owner`) to avoid recursive RLS between tables.
 
