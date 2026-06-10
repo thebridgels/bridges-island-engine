@@ -230,6 +230,14 @@ export default async function IslandPage({
               📜 Ledger
             </Link>
           )}
+          {isOwner && (
+            <Link
+              href={`/islands/${island.id}/export`}
+              className="text-gray-600 underline dark:text-gray-400"
+            >
+              ⬇️ Export
+            </Link>
+          )}
         </span>
       </div>
 

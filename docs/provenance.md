@@ -33,7 +33,8 @@ Honesty about origin travels with the content; this matters most for
 `audit_events` is each island's **ledger**: an append-only record of every
 major owner action — building, reshaping, and removing places; adding,
 changing, and removing assets; appointing, reassigning, and dismissing
-architects; raising and withdrawing bridges.
+architects; raising and withdrawing bridges; exporting the island
+(`export.island`).
 
 Each event records the island, the actor, the action, the target
 (`target_type` + `target_id`), a `metadata` JSON blob, and a timestamp.
@@ -59,6 +60,15 @@ best-effort by design: a failed log write never breaks the action it
 describes. One consequence to know: when a bridged grantee removes their
 own bridge (allowed by RLS), no event is written, because they cannot
 write to an island ledger they don't own.
+
+## Taking it with you
+
+Provenance and the ledger travel with the island: the owner-only Export
+(`/islands/<id>/export`) produces a JSON snapshot that includes every
+asset's provenance fields and the full audit ledger. The export is part of
+ownership — it is generated through the owner's own RLS-enforced session
+(never service-role access), contains no platform secrets, and is itself
+recorded in the ledger as `export.island`.
 
 ## Later
 

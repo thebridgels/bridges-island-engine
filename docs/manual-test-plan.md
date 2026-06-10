@@ -12,7 +12,7 @@ Supabase project ref: wprjvtyzicxtngvxvpqm
 - [x] **Email confirmation disabled** for this test run:
       Dashboard → Authentication → Sign In / Providers → Email →
       "Confirm email" OFF (otherwise signup detours through email)
-- [x] All seven migrations applied **in this order** via SQL Editor
+- [x] All eight migrations applied **in this order** via SQL Editor
       (paste each file's contents and Run, one at a time — or run
       `setup-all.sql` once, which folds them all in):
   - [x] `20260610000000_islands_and_bridges.sql`
@@ -22,6 +22,7 @@ Supabase project ref: wprjvtyzicxtngvxvpqm
   - [x] `20260610040000_stewards.sql` (historical name; table is renamed below)
   - [x] `20260610050000_audit_and_provenance.sql`
   - [x] `20260610060000_rename_stewards_to_architects.sql`
+  - [x] `20260610070000_export_audit_action.sql`
 - [x] Table Editor shows: `islands`, `bridges`, `places`, `profiles`,
       `assets`, `architects`, `audit_events` — each with RLS marked enabled
 - [x] `.env.local` filled with the project's URL and anon key
@@ -127,6 +128,32 @@ As OWNER, island page → 📜 Ledger:
 - [x] SQL Editor spot-check (runs as postgres, bypasses RLS — expected):
       `select action, target_type, metadata from audit_events order by
       created_at;` rows match the UI
+
+## 6b. Owner Export
+
+As OWNER, island page → ⬇️ Export:
+
+- [ ] Export page loads at /islands/<id>/export; explains the export
+      belongs to the owner, includes structure and content, excludes
+      platform secrets, and is a snapshot
+- [ ] "Export Island" downloads a JSON file
+- [ ] JSON contains: export_version, exported_at, island, places (2),
+      assets (3, with source_type / created_by_ai / source_note),
+      architects (3, each with knowledge_summary), bridges (with grantee
+      email), audit_events, and the ownership/security notes
+- [ ] Nothing secret in the file: no keys, no tokens, no session data
+      (search the JSON for "key", "token", "secret" — only content matches)
+- [ ] "exported the island" appears in the Ledger after download
+
+As VISITOR (while bridged, before section 7):
+
+- [ ] /islands/<id>/export → 404
+- [ ] /islands/<id>/export/download → 404
+
+As STRANGER:
+
+- [ ] /islands/<id>/export → 404
+- [ ] /islands/<id>/export/download → 404
 
 ## 7. Revoke and confirm closure
 

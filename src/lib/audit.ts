@@ -11,9 +11,15 @@ export type AuditAction =
   | "architect.updated"
   | "architect.deleted"
   | "bridge.granted"
-  | "bridge.revoked";
+  | "bridge.revoked"
+  | "export.island";
 
-export type AuditTargetType = "place" | "asset" | "architect" | "bridge";
+export type AuditTargetType =
+  | "place"
+  | "asset"
+  | "architect"
+  | "bridge"
+  | "island";
 
 export type AuditEvent = {
   id: string;
@@ -39,6 +45,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "architect.deleted": "dismissed an architect",
   "bridge.granted": "raised a bridge",
   "bridge.revoked": "withdrew a bridge",
+  "export.island": "exported the island",
 };
 
 // Best-effort, append-only logging. Failures are swallowed on purpose:

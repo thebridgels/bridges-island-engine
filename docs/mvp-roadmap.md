@@ -51,6 +51,13 @@ full manual test plan passed end-to-end on 2026-06-10
   [bridges-constitution.md](bridges-constitution.md);
   [architecture.md](architecture.md) records the layers and the
   owner/platform responsibility boundary.
+- **Owner Export** — owner-only `/islands/<id>/export` page with a
+  downloadable JSON snapshot: island, places, assets (with provenance),
+  architects (with derived knowledge summaries), bridge records, and the
+  full audit ledger. Built entirely through the owner's RLS-enforced
+  session (no service-role access, no platform secrets in the file), and
+  each export is logged to the ledger as `export.island`. Makes
+  principle 2's ownership claim concrete.
 
 ## 2. Immediate Next Steps (recommended, not yet implemented)
 
@@ -71,9 +78,8 @@ full manual test plan passed end-to-end on 2026-06-10
    asset types currently hold only URLs. Needs bucket policies that mirror
    the existing RLS layering — same two-gate visibility, no public buckets
    by default.
-5. **Owner export.** A "take your island with you" JSON export (island,
-   places, assets, architects, ledger). Cheap to build now, and it makes
-   principle 2's ownership claim concrete.
+5. **Owner export.** ✅ Done 2026-06-10: owner-only export page and JSON
+   download, logged to the ledger as `export.island`. See section 1.
 
 ## 3. Risks / Design Questions
 
@@ -97,7 +103,7 @@ full manual test plan passed end-to-end on 2026-06-10
   written *as whom*, marked how (`created_by_ai`/provenance), logged how,
   and capped by what? "Unless restricted later" in the knowledge rules
   also still needs its restriction mechanism.
-- **Owner export / delete.** Export doesn't exist. Account deletion
+- **Owner export / delete.** Export now exists. Account deletion
   currently means cascading rows away (`on delete cascade`) with no
   off-boarding path; the ledger also dies with the island. Decide what
   "leaving with your island" and "destroying your island" each mean.

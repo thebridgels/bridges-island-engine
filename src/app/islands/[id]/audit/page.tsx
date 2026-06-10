@@ -9,6 +9,7 @@ const TARGET_ICONS: Record<string, string> = {
   asset: "📦",
   architect: "📐",
   bridge: "🌉",
+  island: "🏝️",
 };
 
 export default async function AuditPage({

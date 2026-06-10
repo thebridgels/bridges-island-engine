@@ -14,6 +14,7 @@ app (see [the constitution](bridges-constitution.md), principle 1).
 | Access | `bridges` grants + `private`/`bridged` visibility flags, enforced entirely by RLS policies in `supabase/migrations/`. |
 | Trust | Append-only `audit_events` ledger + asset provenance fields ([provenance.md](provenance.md)). |
 | Architects | Permissioned interfaces to island assets; knowledge is derived per request, never stored ([architect-knowledge.md](architect-knowledge.md)). No model is connected yet. |
+| Ownership | Owner Export (`/islands/<id>/export`): an owner-only JSON snapshot of the island — places, assets with provenance, architects with knowledge summaries, bridge records, audit ledger. Built entirely through the owner's session (RLS enforced, no service-role access) and logged to the ledger as `export.island`. |
 
 ## Responsibility boundary
 

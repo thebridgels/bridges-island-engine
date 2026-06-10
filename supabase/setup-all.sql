@@ -1,7 +1,8 @@
 -- Consolidated setup script: produces the FINAL schema state, equivalent to
 -- running all migrations in order (including 20260610060000, which renamed
 -- stewards to architects — folded in here, so a fresh install creates
--- public.architects directly and never needs the rename).
+-- public.architects directly and never needs the rename — and 20260610070000,
+-- which added the 'export.island' audit action).
 
 -- ============================================================
 -- 20260610000000_islands_and_bridges.sql
@@ -502,9 +503,10 @@ create table public.audit_events (
     'place.created', 'place.updated', 'place.deleted',
     'asset.created', 'asset.updated', 'asset.deleted',
     'architect.created', 'architect.updated', 'architect.deleted',
-    'bridge.granted', 'bridge.revoked'
+    'bridge.granted', 'bridge.revoked',
+    'export.island'
   )),
-  target_type text not null check (target_type in ('place', 'asset', 'architect', 'bridge')),
+  target_type text not null check (target_type in ('place', 'asset', 'architect', 'bridge', 'island')),
   target_id uuid not null,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()

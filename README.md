@@ -114,6 +114,17 @@ ai_generated, imported, linked), a `created_by_ai` flag, and an optional
 minimal and non-sensitive (display names only). See
 [docs/provenance.md](docs/provenance.md).
 
+## Owner Export
+
+Ownership made concrete: the island owner can export their island as JSON
+from `/islands/<id>/export`. The snapshot includes the island, places,
+assets (with provenance), architects (with derived knowledge summaries),
+bridge records, and the full audit ledger. It is owner-only (visitors and
+strangers get a 404), generated entirely through the owner's own
+RLS-enforced session — no service-role access — and contains no platform
+secrets. Each export is recorded in the ledger as `export.island`. The
+export is a point-in-time snapshot, not a live backup.
+
 ## Row Level Security
 
 Defined in the [islands/bridges](supabase/migrations/20260610000000_islands_and_bridges.sql),
