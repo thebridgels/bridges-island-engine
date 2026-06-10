@@ -107,6 +107,10 @@ full manual test plan passed end-to-end on 2026-06-10
   currently means cascading rows away (`on delete cascade`) with no
   off-boarding path; the ledger also dies with the island. Decide what
   "leaving with your island" and "destroying your island" each mean.
+- **TODO — export logs on GET.** Export currently logs on GET download.
+  This is acceptable for alpha, but a future version should consider a
+  POST-triggered export to avoid accidental audit entries from
+  prefetchers or crawlers.
 - **Encryption / security hardening.** Content is plaintext in Postgres
   (standard for this stage; Supabase encrypts at rest). No rate limiting
   on auth or actions, no CAPTCHA on signup, no session-revocation UI, and
