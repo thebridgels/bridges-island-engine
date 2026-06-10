@@ -74,6 +74,12 @@ this phase is data model and interface. Visibility follows the same layering
 as assets: bridged users see only `bridged` stewards that are island-wide or
 on a `bridged` place.
 
+Stewards do not own knowledge — they are permissioned interfaces to island
+assets. A steward's knowledge is derived at read time from the places and
+assets it may access (the whole island for island stewards, a single place
+for place stewards), always through the viewer's RLS-filtered session. There
+is no knowledge table. See [docs/steward-knowledge.md](docs/steward-knowledge.md).
+
 ## Bridges
 
 Island owners manage bridges from the island detail page: grant access by

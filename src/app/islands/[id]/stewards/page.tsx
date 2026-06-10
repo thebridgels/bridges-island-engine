@@ -10,6 +10,7 @@ import {
   formatRole,
   type Steward,
 } from "@/lib/stewards";
+import { stewardKnowledge } from "@/lib/steward-knowledge";
 import { createSteward, deleteSteward, updateSteward } from "./actions";
 
 const inputClass =
@@ -186,6 +187,21 @@ export default async function StewardsPage({
   const places = (placeData ?? []) as Pick<Place, "id" | "name" | "type">[];
   const placeById = new Map(places.map((place) => [place.id, place]));
 
+  // Knowledge source: the viewer-visible assets of this island. Fetched with
+  // the viewer's session, so RLS has already applied the viewer gate — a
+  // bridged visitor's rows are only the bridged-visible ones.
+  const { data: assetData } = await supabase
+    .from("assets")
+    .select("id, title, place_id")
+    .eq("island_id", island.id)
+    .order("created_at", { ascending: true });
+
+  const assets = (assetData ?? []) as {
+    id: string;
+    title: string;
+    place_id: string;
+  }[];
+
   // RLS: owners get every steward; bridged users only 'bridged' stewards
   // that are island-wide or on a 'bridged' place.
   const { data } = await supabase
@@ -236,6 +252,7 @@ export default async function StewardsPage({
             const place = steward.place_id
               ? placeById.get(steward.place_id)
               : undefined;
+            const knowledge = stewardKnowledge(steward, places, assets);
             return (
               <li
                 key={steward.id}
@@ -284,6 +301,40 @@ export default async function StewardsPage({
                     {steward.description}
                   </p>
                 )}
+                <details className="text-xs text-gray-500">
+                  <summary className="cursor-pointer">
+                    Knows{knowledge.scope === "island" ? " the island," : ""}{" "}
+                    {knowledge.places.length}{" "}
+                    {knowledge.places.length === 1 ? "place" : "places"} ·{" "}
+                    {knowledge.assets.length}{" "}
+                    {knowledge.assets.length === 1 ? "asset" : "assets"}
+                  </summary>
+                  <div className="mt-2 space-y-1">
+                    {knowledge.places.length === 0 ? (
+                      <p>Nothing in reach yet.</p>
+                    ) : (
+                      knowledge.places.map((knownPlace) => {
+                        const placeAssets = knowledge.assets.filter(
+                          (asset) => asset.place_id === knownPlace.id
+                        );
+                        return (
+                          <p key={knownPlace.id}>
+                            {PLACE_TYPE_ICONS[knownPlace.type] ?? "📍"}{" "}
+                            {knownPlace.name}
+                            {placeAssets.length > 0 && (
+                              <>
+                                {" — "}
+                                {placeAssets
+                                  .map((asset) => asset.title)
+                                  .join(", ")}
+                              </>
+                            )}
+                          </p>
+                        );
+                      })
+                    )}
+                  </div>
+                </details>
                 <p className="text-xs text-gray-500">
                   {steward.model_provider
                     ? `${steward.model_provider}${
