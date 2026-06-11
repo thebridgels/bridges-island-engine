@@ -33,8 +33,10 @@ Honesty about origin travels with the content; this matters most for
 `audit_events` is each island's **ledger**: an append-only record of every
 major owner action — building, reshaping, and removing places; adding,
 changing, and removing assets; appointing, reassigning, and dismissing
-architects; raising and withdrawing bridges; exporting the island
-(`export.island`).
+architects; conferring with an architect (`architect.replied` — the
+exchange is logged, its content never is; transcripts live in the
+owner-only conversation tables); raising and withdrawing bridges;
+exporting the island (`export.island`).
 
 Each event records the island, the actor, the action, the target
 (`target_type` + `target_id`), a `metadata` JSON blob, and a timestamp.
@@ -72,8 +74,11 @@ recorded in the ledger as `export.island`.
 
 ## Later
 
-- Architect actions (once models are connected) must be logged with the
-  architect as identifiable context in `metadata`, so AI activity is
-  distinguishable from owner activity.
+- ✅ *(phase 1 done)* Architect chat activity is logged with the architect's
+  name in `metadata` (`architect.replied`), and every architect reply row
+  carries structural AI provenance: `created_by_ai` is CHECK-constrained to
+  the architect role, with `model_provider`/`model_name` recorded. If
+  architects ever *write island content* (assets, notes), that re-opens the
+  constitution and needs its own plan.
 - Asset content versioning (true "what changed", not just "that it
   changed") would build on the same ledger.

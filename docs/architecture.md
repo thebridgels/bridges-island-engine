@@ -13,7 +13,7 @@ app (see [the constitution](bridges-constitution.md), principle 1).
 | Structure | `islands` → `places` → `assets`; `architects` attach to an island or a place. Each island has a deterministic visual identity (`src/lib/island-identity.ts`). |
 | Access | `bridges` grants + `private`/`bridged` visibility flags, enforced entirely by RLS policies in `supabase/migrations/`. |
 | Trust | Append-only `audit_events` ledger + asset provenance fields ([provenance.md](provenance.md)). |
-| Architects | Permissioned interfaces to island assets; knowledge is derived per request, never stored ([architect-knowledge.md](architect-knowledge.md)). No model is connected yet. |
+| Architects | Permissioned interfaces to island assets; knowledge is derived per request, never stored ([architect-knowledge.md](architect-knowledge.md)). Owner-only chat is connected to Anthropic (phase 1 of [architect-chat-plan.md](architect-chat-plan.md)): context comes exclusively from `architectKnowledge()` on the requester's session, replies are stored in dedicated `architect_conversations`/`architect_messages` tables permanently marked AI-generated, the model has no tools and no write path, and every exchange is ledger-logged (`architect.replied`, activity only). |
 | Ownership | Owner Export (`/islands/<id>/export`): an owner-only JSON snapshot of the island — places, assets with provenance, architects with knowledge summaries, bridge records, audit ledger. Built entirely through the owner's session (RLS enforced, no service-role access) and logged to the ledger as `export.island`. |
 
 ## Responsibility boundary

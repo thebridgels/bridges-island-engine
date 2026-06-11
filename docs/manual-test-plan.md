@@ -4,6 +4,7 @@ Purpose: prove RLS, ownership, bridges, visibility, and audit behavior in a
 real Supabase project. No AI connection, no public views, no uploads.
 
 Date run: 2026-06-10  Tester: Claude Code (automated browser walkthrough)
+Sections 6b/6c run: 2026-06-11 (same tester; browser + REST probes)
 Supabase project ref: wprjvtyzicxtngvxvpqm
 
 ## 0. Setup
@@ -12,7 +13,7 @@ Supabase project ref: wprjvtyzicxtngvxvpqm
 - [x] **Email confirmation disabled** for this test run:
       Dashboard → Authentication → Sign In / Providers → Email →
       "Confirm email" OFF (otherwise signup detours through email)
-- [x] All eight migrations applied **in this order** via SQL Editor
+- [x] All nine migrations applied **in this order** via SQL Editor
       (paste each file's contents and Run, one at a time — or run
       `setup-all.sql` once, which folds them all in):
   - [x] `20260610000000_islands_and_bridges.sql`
@@ -23,6 +24,7 @@ Supabase project ref: wprjvtyzicxtngvxvpqm
   - [x] `20260610050000_audit_and_provenance.sql`
   - [x] `20260610060000_rename_stewards_to_architects.sql`
   - [x] `20260610070000_export_audit_action.sql`
+  - [x] `20260610080000_architect_chat.sql`
 - [x] Table Editor shows: `islands`, `bridges`, `places`, `profiles`,
       `assets`, `architects`, `audit_events` — each with RLS marked enabled
 - [x] `.env.local` filled with the project's URL and anon key
@@ -133,27 +135,85 @@ As OWNER, island page → 📜 Ledger:
 
 As OWNER, island page → ⬇️ Export:
 
-- [ ] Export page loads at /islands/<id>/export; explains the export
+- [x] Export page loads at /islands/<id>/export; explains the export
       belongs to the owner, includes structure and content, excludes
       platform secrets, and is a snapshot
-- [ ] "Export Island" downloads a JSON file
-- [ ] JSON contains: export_version, exported_at, island, places (2),
+- [x] "Export Island" downloads a JSON file
+      (Content-Disposition: `island-saltwind-2026-06-10.json`)
+- [x] JSON contains: export_version, exported_at, island, places (2),
       assets (3, with source_type / created_by_ai / source_note),
       architects (3, each with knowledge_summary), bridges (with grantee
       email), audit_events, and the ownership/security notes
-- [ ] Nothing secret in the file: no keys, no tokens, no session data
-      (search the JSON for "key", "token", "secret" — only content matches)
-- [ ] "exported the island" appears in the Ledger after download
+      *(run post-revoke, so `bridges: []` — structurally present but empty;
+      the grantee-email field shape was not exercised with live data)*
+- [x] Nothing secret in the file: no keys, no tokens, no session data
+      (scanned for publishable/secret key prefixes, JWT prefix, apikey,
+      access_token, ANTHROPIC — zero matches)
+- [x] "exported the island" appears in the Ledger after download
+      (metadata: `{"export_version": "1"}` only)
 
-As VISITOR (while bridged, before section 7):
+As VISITOR (verified post-revoke; the route is owner-only via the same
+guard verified 404 for a *bridged* visitor on the chat route in 6c):
 
-- [ ] /islands/<id>/export → 404
-- [ ] /islands/<id>/export/download → 404
+- [x] /islands/<id>/export → 404
+- [x] /islands/<id>/export/download → 404
 
 As STRANGER:
 
-- [ ] /islands/<id>/export → 404
-- [ ] /islands/<id>/export/download → 404
+- [x] /islands/<id>/export → 404
+- [x] /islands/<id>/export/download → 404
+
+## 6c. Architect Chat (owner-only, phase 1)
+
+Setup: `.env.local` has `ANTHROPIC_API_KEY` (and optionally
+`ANTHROPIC_DEFAULT_MODEL`); dev server restarted after adding them.
+
+As OWNER, architects page → 💬 Talk on **Harbormaster**:
+
+- [x] Chat page loads at /islands/<id>/architects/<architectId>/chat with
+      "What Harbormaster can see right now" matching the card's knowledge
+      (the island, 2 places · 3 assets) — *verified in the no-key state:
+      page renders, knowledge panel correct, "every reply is AI-generated"
+      notice shown, graceful "Harbormaster cannot speak yet" with no
+      message form when ANTHROPIC_API_KEY is absent*
+- [ ] Sending "What do you know about this island?" produces a reply
+      visibly badged "Harbormaster · AI" — **BLOCKED: no ANTHROPIC_API_KEY
+      in .env.local yet**
+- [ ] The reply is grounded: mentions Saltwind content (e.g. Lighthouse or
+      Welcome Note), no invented places — **BLOCKED (no key)**
+- [ ] Reply persists across a page reload (stored, not ephemeral) —
+      **BLOCKED (no key)**
+- [ ] "conferred with an architect: Harbormaster" appears in the Ledger —
+      and the ledger entry contains NO message content — **BLOCKED (no key)**
+- [ ] SQL spot-check: `select role, created_by_ai, model_provider,
+      model_name from architect_messages order by created_at;` —
+      architect rows have created_by_ai = true and a recorded model —
+      **BLOCKED (no key)** *(the CHECK constraints enforcing this are live
+      in the schema regardless)*
+- [ ] Vault probe (RLS through the model): ask Harbormaster about "Secret
+      Map" — as OWNER it may answer (owner sees everything); then confirm
+      in section 6c-visitor below that no visitor path exists at all —
+      **BLOCKED (no key)**
+- [ ] "Start a new conversation" gives an empty thread; the old one stays
+      in the database — **BLOCKED (no key)**
+
+As VISITOR (bridged — bridge re-granted through the app for this check,
+then revoked again; both ends ledger-logged):
+
+- [x] Architects page shows NO 💬 Talk link (page shows Harbormaster only,
+      knowledge correctly narrowed to "1 place · 1 asset")
+- [x] /islands/<id>/architects/<architectId>/chat → 404 (while bridged)
+- [x] Forged read probe (proves RLS, not UI): direct REST selects on
+      architect_conversations / architect_messages with VISITOR's real JWT
+      returned zero rows — probed both unbridged AND bridged. Extra: forged
+      REST *inserts* on both tables as VISITOR were rejected with HTTP 403
+      `42501 new row violates row-level security policy`. Probe rows were
+      created and removed through OWNER's session only; chat tables left
+      empty (0 conversations / 0 messages).
+
+As STRANGER:
+
+- [x] Chat URL → 404
 
 ## 7. Revoke and confirm closure
 

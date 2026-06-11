@@ -39,9 +39,19 @@ full manual test plan passed end-to-end on 2026-06-10
   over existing places/assets. No knowledge table. Surfaced on architect
   cards. ([architect-knowledge.md](architect-knowledge.md))
 - **Audit and Provenance** — append-only `audit_events` ledger (owner-read
-  only, actor-verified inserts, no update/delete policies) logging all 11
-  major owner actions; owner-only Ledger page. Assets carry `source_type`,
+  only, actor-verified inserts, no update/delete policies) logging every
+  major owner action; owner-only Ledger page. Assets carry `source_type`,
   `created_by_ai`, `source_note`. ([provenance.md](provenance.md))
+- **Architect Chat (phase 1, owner-only)** — owners talk to an architect at
+  `/islands/<id>/architects/<architectId>/chat`. Context is assembled
+  exclusively from `architectKnowledge()` on the requester's session; the
+  model (Anthropic only; architect `model_name` → `ANTHROPIC_DEFAULT_MODEL`
+  → low-cost default) has no tools and no write path. Conversations live in
+  dedicated `architect_conversations`/`architect_messages` tables (owner-only
+  RLS, append-only messages, AI-marking CHECK-constrained to the architect
+  role); exchanges are ledger-logged as `architect.replied` (activity, never
+  content); 30 messages/hour rate limit. Visitor chat, streaming, tools, and
+  architect writes deliberately deferred ([architect-chat-plan.md](architect-chat-plan.md)).
 - **Island Experience Layer** — each island has a deterministic silhouette
   and palette derived from its id; the island page is a full-bleed map
   where place markers are navigation; the dashboard is "the sea"; admin
@@ -66,11 +76,11 @@ full manual test plan passed end-to-end on 2026-06-10
    in [manual-test-plan.md](manual-test-plan.md) passed (three accounts:
    owner, bridged visitor, stranger — including a forged-write probe
    rejected by RLS).
-2. **Connect architects to a real model (Claude first).** Server-side
-   conversation route where prompt context is assembled exclusively from
-   `architectKnowledge()` for the requesting session, architect replies are
-   marked as AI, and architect activity is logged to the ledger with architect
-   context in metadata. This is the product's center of gravity.
+2. **Connect architects to a real model (Claude first).** ✅ Phase 1 done
+   2026-06-10: owner-only chat per [architect-chat-plan.md](architect-chat-plan.md)
+   — see section 1. Remaining for later phases: visitor chat (cost
+   attribution, per-visitor limits, injection posture), streaming, and the
+   architect-writes question.
 3. **Click-to-place on the island map.** The one deferred client
    component: choose a place's position by clicking the coastline instead
    of typing coordinates. Small, high-leverage for the ownership feeling.

@@ -275,6 +275,12 @@ export default async function ArchitectsPage({
                   {isOwner && (
                     <div className="flex shrink-0 gap-2 text-xs">
                       <Link
+                        href={`/islands/${island.id}/architects/${architect.id}/chat`}
+                        className="underline"
+                      >
+                        💬 Talk
+                      </Link>
+                      <Link
                         href={`/islands/${island.id}/architects?edit=${architect.id}`}
                         className="underline"
                       >

@@ -10,6 +10,7 @@ export type AuditAction =
   | "architect.created"
   | "architect.updated"
   | "architect.deleted"
+  | "architect.replied"
   | "bridge.granted"
   | "bridge.revoked"
   | "export.island";
@@ -43,6 +44,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "architect.created": "appointed an architect",
   "architect.updated": "reassigned an architect",
   "architect.deleted": "dismissed an architect",
+  "architect.replied": "conferred with an architect",
   "bridge.granted": "raised a bridge",
   "bridge.revoked": "withdrew a bridge",
   "export.island": "exported the island",

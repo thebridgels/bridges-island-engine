@@ -1,8 +1,9 @@
 -- Consolidated setup script: produces the FINAL schema state, equivalent to
 -- running all migrations in order (including 20260610060000, which renamed
 -- stewards to architects — folded in here, so a fresh install creates
--- public.architects directly and never needs the rename — and 20260610070000,
--- which added the 'export.island' audit action).
+-- public.architects directly and never needs the rename — 20260610070000,
+-- which added the 'export.island' audit action, and 20260610080000, which
+-- added architect chat tables and the 'architect.replied' audit action).
 
 -- ============================================================
 -- 20260610000000_islands_and_bridges.sql
@@ -503,6 +504,7 @@ create table public.audit_events (
     'place.created', 'place.updated', 'place.deleted',
     'asset.created', 'asset.updated', 'asset.deleted',
     'architect.created', 'architect.updated', 'architect.deleted',
+    'architect.replied',
     'bridge.granted', 'bridge.revoked',
     'export.island'
   )),
@@ -542,5 +544,97 @@ alter table public.assets
   add column created_by_ai boolean not null default false,
   add column source_note text
     check (source_note is null or char_length(source_note) <= 500);
+
+-- ============================================================
+-- 20260610080000_architect_chat.sql
+-- ============================================================
+-- Architect Chat (phase 1, owner-only): dedicated conversation tables.
+-- Interaction records — not assets, not audit events. Owner-only RLS;
+-- visitor policies deliberately absent. Architect replies are written
+-- through the requesting owner's session and marked AI at the schema
+-- level (created_by_ai = (role = 'architect')). actor_id is the
+-- authenticated human session behind the row — for AI replies, the human
+-- whose request caused the generation, not the author.
+
+alter table public.architects
+  add constraint architects_id_island_id_key unique (id, island_id);
+
+create table public.architect_conversations (
+  id uuid primary key default gen_random_uuid(),
+  island_id uuid not null references public.islands (id) on delete cascade,
+  architect_id uuid not null,
+  owner_id uuid not null references auth.users (id) on delete cascade,
+  title text check (title is null or char_length(title) <= 200),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (architect_id, island_id)
+    references public.architects (id, island_id) on delete cascade,
+  unique (id, island_id)
+);
+
+create table public.architect_messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null,
+  island_id uuid not null references public.islands (id) on delete cascade,
+  actor_id uuid not null references auth.users (id) on delete cascade,
+  role text not null check (role in ('user', 'architect')),
+  content text not null check (char_length(content) between 1 and 8000),
+  created_by_ai boolean not null,
+  model_provider text check (model_provider in ('anthropic', 'openai', 'other')),
+  model_name text check (model_name is null or char_length(model_name) <= 120),
+  created_at timestamptz not null default now(),
+  foreign key (conversation_id, island_id)
+    references public.architect_conversations (id, island_id) on delete cascade,
+  check (created_by_ai = (role = 'architect')),
+  check (role = 'user' or (model_provider is not null and model_name is not null))
+);
+
+create index architect_conversations_island_idx
+  on public.architect_conversations (island_id, architect_id);
+create index architect_messages_conversation_idx
+  on public.architect_messages (conversation_id, created_at);
+
+alter table public.architect_conversations enable row level security;
+alter table public.architect_messages enable row level security;
+
+create policy "Island owners can view their conversations"
+on public.architect_conversations for select
+to authenticated
+using (public.is_island_owner(island_id));
+
+create policy "Island owners can start conversations"
+on public.architect_conversations for insert
+to authenticated
+with check (
+  public.is_island_owner(island_id)
+  and owner_id = (select auth.uid())
+);
+
+create policy "Island owners can update their conversations"
+on public.architect_conversations for update
+to authenticated
+using (public.is_island_owner(island_id))
+with check (public.is_island_owner(island_id));
+
+create policy "Island owners can delete their conversations"
+on public.architect_conversations for delete
+to authenticated
+using (public.is_island_owner(island_id));
+
+create policy "Island owners can view their conversation messages"
+on public.architect_messages for select
+to authenticated
+using (public.is_island_owner(island_id));
+
+create policy "Island owners can append conversation messages"
+on public.architect_messages for insert
+to authenticated
+with check (
+  public.is_island_owner(island_id)
+  and actor_id = (select auth.uid())
+);
+
+-- No update or delete policies on messages: transcripts are append-only
+-- through the API.
 
 

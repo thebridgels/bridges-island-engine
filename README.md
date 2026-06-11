@@ -72,11 +72,24 @@ enforced by the island. Each has a role (Librarian, Archivist, Curator,
 Researcher, Builder, Teacher, Receptionist, Guardian) and is managed from
 `/islands/<id>/architects`. An architect is either
 island-wide or assigned to a specific place; place-scoped architects also show
-up on that place's page. Architects store an optional `model_provider` /
-`model_name` as configuration only — **no external model is connected yet**;
-this phase is data model and interface. Visibility follows the same layering
+up on that place's page. Visibility follows the same layering
 as assets: bridged users see only `bridged` architects that are island-wide or
 on a `bridged` place.
+
+**Architect Chat (phase 1, owner-only).** The island owner can talk to an
+architect at `/islands/<id>/architects/<architectId>/chat` (Anthropic
+provider only; the architect's stored `model_name` wins when set, else
+`ANTHROPIC_DEFAULT_MODEL`, else a low-cost default). The prompt context is
+assembled exclusively from `architectKnowledge()` over rows fetched with
+the requesting owner's session — the model sees exactly what the owner may
+see, has no tools, and cannot change the island. Conversations are stored
+in dedicated owner-only tables; replies are permanently marked
+AI-generated (a CHECK constraint ties `created_by_ai` to the architect
+role, with the model recorded per reply); each exchange is logged to the
+ledger as `architect.replied` without message content; 30 messages/hour
+rate limit. Visitors and strangers get a 404. Requires `ANTHROPIC_API_KEY`
+in `.env.local` (server-only). No streaming, no visitor chat, no architect
+writes yet — see [docs/architect-chat-plan.md](docs/architect-chat-plan.md).
 
 Architects do not own knowledge — they are permissioned interfaces to island
 assets. An architect's knowledge is derived at read time from the places and
