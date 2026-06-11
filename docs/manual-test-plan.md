@@ -176,26 +176,28 @@ As OWNER, architects page → 💬 Talk on **Harbormaster**:
       page renders, knowledge panel correct, "every reply is AI-generated"
       notice shown, graceful "Harbormaster cannot speak yet" with no
       message form when ANTHROPIC_API_KEY is absent*
-- [ ] Sending "What do you know about this island?" produces a reply
-      visibly badged "Harbormaster · AI" — **BLOCKED: no ANTHROPIC_API_KEY
-      in .env.local yet**
-- [ ] The reply is grounded: mentions Saltwind content (e.g. Lighthouse or
-      Welcome Note), no invented places — **BLOCKED (no key)**
-- [ ] Reply persists across a page reload (stored, not ephemeral) —
-      **BLOCKED (no key)**
-- [ ] "conferred with an architect: Harbormaster" appears in the Ledger —
-      and the ledger entry contains NO message content — **BLOCKED (no key)**
-- [ ] SQL spot-check: `select role, created_by_ai, model_provider,
+- [x] Sending "What do you know about this island?" produces a reply
+      visibly badged "Harbormaster · AI" *(run 2026-06-11 after adding
+      ANTHROPIC_API_KEY locally; model: claude-haiku-4-5-20251001)*
+- [x] The reply is grounded: mentions Saltwind content (e.g. Lighthouse or
+      Welcome Note), no invented places — *reply described Lighthouse,
+      Welcome Note ("The lamp is always lit"), Vault, and Secret Map; all
+      real fixture content, correct for the owner who sees everything*
+- [x] Reply persists across a page reload (stored, not ephemeral)
+- [x] "conferred with an architect: Harbormaster" appears in the Ledger —
+      and the ledger entry contains NO message content — *two
+      `architect.replied` events, metadata exactly `{"name":"Harbormaster"}`*
+- [x] SQL spot-check: `select role, created_by_ai, model_provider,
       model_name from architect_messages order by created_at;` —
       architect rows have created_by_ai = true and a recorded model —
-      **BLOCKED (no key)** *(the CHECK constraints enforcing this are live
-      in the schema regardless)*
-- [ ] Vault probe (RLS through the model): ask Harbormaster about "Secret
-      Map" — as OWNER it may answer (owner sees everything); then confirm
-      in section 6c-visitor below that no visitor path exists at all —
-      **BLOCKED (no key)**
-- [ ] "Start a new conversation" gives an empty thread; the old one stays
-      in the database — **BLOCKED (no key)**
+      *user rows: false/null/null; architect rows: true/anthropic/
+      claude-haiku-4-5-20251001*
+- [x] Vault probe (RLS through the model): ask Harbormaster about "Secret
+      Map" — as OWNER it may answer (owner sees everything) — *it answered
+      with the map's content, correct for the owner; visitor paths
+      confirmed closed below*
+- [x] "Start a new conversation" gives an empty thread; the old one stays
+      in the database — *2 conversations, 4 messages after the run*
 
 As VISITOR (bridged — bridge re-granted through the app for this check,
 then revoked again; both ends ledger-logged):
@@ -208,8 +210,10 @@ then revoked again; both ends ledger-logged):
       returned zero rows — probed both unbridged AND bridged. Extra: forged
       REST *inserts* on both tables as VISITOR were rejected with HTTP 403
       `42501 new row violates row-level security policy`. Probe rows were
-      created and removed through OWNER's session only; chat tables left
-      empty (0 conversations / 0 messages).
+      created and removed through OWNER's session only. Re-probed
+      2026-06-11 with real transcripts present (2 conversations,
+      4 messages): OWNER reads all of them; VISITOR, STRANGER, and ANON
+      all read zero rows; visitor forged write again rejected 403.
 
 As STRANGER:
 
