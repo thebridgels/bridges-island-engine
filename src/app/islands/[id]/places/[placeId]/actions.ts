@@ -111,6 +111,74 @@ export async function updateAsset(formData: FormData) {
   redirect(placePath(islandId, placeId));
 }
 
+// Register an existing file on the owner's device as an Asset, WITHOUT
+// uploading its bytes. The form carries metadata only (computed client-side);
+// the atomic `register_local_asset` RPC creates the Presence row
+// (contents_kind='local_reference') and the owner-only asset_files row.
+export async function registerLocalDocument(formData: FormData) {
+  const islandId = String(formData.get("island_id") ?? "");
+  const placeId = String(formData.get("place_id") ?? "");
+  if (!islandId || !placeId) redirect("/dashboard");
+
+  const title = String(formData.get("title") ?? "").trim();
+  const fileName = String(formData.get("file_name") ?? "").trim();
+  if (!title) fail(islandId, placeId, "A title is required.");
+  if (!fileName) fail(islandId, placeId, "Select a file to register.");
+
+  const rawType = String(formData.get("asset_type") ?? "");
+  const assetType = (ASSET_TYPES as readonly string[]).includes(rawType)
+    ? (rawType as AssetType)
+    : "document";
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const visibility =
+    formData.get("visibility") === "bridged" ? "bridged" : "private";
+  const localPathNote =
+    String(formData.get("local_path_note") ?? "").trim() || null;
+  const mimeType = String(formData.get("mime_type") ?? "").trim() || null;
+  const checksumRaw = String(formData.get("checksum_sha256") ?? "").trim();
+  const checksum = /^[0-9a-f]{64}$/.test(checksumRaw) ? checksumRaw : null;
+  const sizeNum = Number(formData.get("file_size"));
+  const fileSize =
+    Number.isFinite(sizeNum) && sizeNum >= 0 ? Math.round(sizeNum) : null;
+  const lastModified =
+    String(formData.get("source_last_modified") ?? "").trim() || null;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: assetId, error } = await supabase.rpc("register_local_asset", {
+    p_island_id: islandId,
+    p_place_id: placeId,
+    p_title: title,
+    p_description: description,
+    p_asset_type: assetType,
+    p_source_type: "imported",
+    p_source_note: null,
+    p_visibility: visibility,
+    p_file_name: fileName,
+    p_file_size: fileSize,
+    p_mime_type: mimeType,
+    p_checksum_sha256: checksum,
+    p_local_path_note: localPathNote,
+    p_source_last_modified: lastModified,
+  });
+
+  if (error) fail(islandId, placeId, error.message);
+
+  await logAuditEvent(supabase, {
+    islandId,
+    action: "asset.created",
+    targetType: "asset",
+    targetId: assetId as string,
+    metadata: { title, source_type: "imported", storage_kind: "local_reference" },
+  });
+
+  revalidatePath(placePath(islandId, placeId));
+}
+
 export async function deleteAsset(formData: FormData) {
   const islandId = String(formData.get("island_id") ?? "");
   const placeId = String(formData.get("place_id") ?? "");

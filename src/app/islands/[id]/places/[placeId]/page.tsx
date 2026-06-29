@@ -7,7 +7,10 @@ import {
   ASSET_SOURCE_TYPES,
   ASSET_TYPES,
   ASSET_TYPE_ICONS,
+  LOCAL_FILE_DISCLOSURE,
+  formatFileSize,
   type Asset,
+  type AssetFile,
 } from "@/lib/assets";
 import { PLACE_TYPE_ICONS, type Place } from "@/lib/places";
 import {
@@ -15,7 +18,13 @@ import {
   formatRole,
   type Architect,
 } from "@/lib/architects";
-import { createAsset, deleteAsset, updateAsset } from "./actions";
+import { RegisterLocalDocument } from "@/components/register-local-document";
+import {
+  createAsset,
+  deleteAsset,
+  registerLocalDocument,
+  updateAsset,
+} from "./actions";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900";
@@ -214,12 +223,24 @@ export default async function PlacePage({
   const { data } = await supabase
     .from("assets")
     .select(
-      "id, island_id, place_id, owner_id, title, description, asset_type, content_text, url, visibility, source_type, created_by_ai, source_note, created_at, updated_at"
+      "id, island_id, place_id, owner_id, title, description, asset_type, content_text, url, visibility, source_type, created_by_ai, source_note, contents_kind, created_at, updated_at"
     )
     .eq("place_id", place.id)
     .order("created_at", { ascending: true });
 
   const assets = (data ?? []) as Asset[];
+
+  // Asset Contents metadata — owner-only by RLS, so a bridged visitor's query
+  // returns nothing and they perceive only the Presence (title/type/badge).
+  const { data: fileData } = await supabase
+    .from("asset_files")
+    .select(
+      "id, asset_id, storage_kind, file_name, file_size, mime_type, checksum_sha256, checksum_algo, local_path_note, source_last_modified, registered_at"
+    )
+    .eq("island_id", island.id);
+  const filesByAsset = new Map<string, AssetFile>(
+    ((fileData ?? []) as AssetFile[]).map((file) => [file.asset_id, file])
+  );
   const editingAsset = isOwner
     ? assets.find((asset) => asset.id === edit)
     : undefined;
@@ -277,7 +298,9 @@ export default async function PlacePage({
         <h2 className="text-lg font-medium">Assets</h2>
         {assets.length > 0 ? (
           <ul className="space-y-3">
-            {assets.map((asset) => (
+            {assets.map((asset) => {
+              const file = filesByAsset.get(asset.id);
+              return (
               <li
                 key={asset.id}
                 className="space-y-2 rounded-lg border border-gray-200 p-4 dark:border-gray-800"
@@ -341,8 +364,40 @@ export default async function PlacePage({
                     {asset.url}
                   </a>
                 )}
+                {asset.contents_kind === "local_reference" &&
+                  (file ? (
+                    <div className="space-y-1 rounded-md bg-gray-50 p-3 text-xs dark:bg-gray-900">
+                      <p className="font-medium text-gray-800 dark:text-gray-200">
+                        🗄️ On your device — local reference
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {file.file_name} · {formatFileSize(file.file_size)} ·{" "}
+                        {file.mime_type || "unknown type"}
+                      </p>
+                      {file.checksum_sha256 && (
+                        <p className="text-gray-500">
+                          sha-256 {file.checksum_sha256.slice(0, 12)}…
+                        </p>
+                      )}
+                      {file.local_path_note && (
+                        <p className="text-gray-500">
+                          where you keep it: {file.local_path_note}
+                        </p>
+                      )}
+                      <p className="text-gray-500">{LOCAL_FILE_DISCLOSURE}</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900 dark:text-gray-400">
+                      <p className="font-medium">🗄️ Local reference</p>
+                      <p>
+                        This file lives on the owner&rsquo;s device and is not
+                        available here.
+                      </p>
+                    </div>
+                  ))}
               </li>
-            ))}
+              );
+            })}
           </ul>
         ) : (
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -426,6 +481,14 @@ export default async function PlacePage({
             </button>
           </form>
         </section>
+      )}
+
+      {isOwner && (
+        <RegisterLocalDocument
+          islandId={island.id}
+          placeId={place.id}
+          action={registerLocalDocument}
+        />
       )}
     </main>
   );
