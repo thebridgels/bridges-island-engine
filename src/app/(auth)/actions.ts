@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ALPHA_SIGNUPS_OPEN } from "@/lib/alpha";
 
 export async function login(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -24,6 +25,16 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
+  // Closed alpha: refuse enrollment regardless of input. This guards the
+  // server action even against a direct POST. Note this is app-level only;
+  // Supabase's "Allow new users to sign up" setting is the authoritative
+  // gate (see src/lib/alpha.ts).
+  if (!ALPHA_SIGNUPS_OPEN) {
+    redirect(
+      `/login?message=${encodeURIComponent("Bridges is in private alpha — signups are closed. Invited users can log in below.")}`
+    );
+  }
+
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 

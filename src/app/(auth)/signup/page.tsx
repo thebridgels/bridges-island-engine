@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signup } from "../actions";
+import { ALPHA_SIGNUPS_OPEN } from "@/lib/alpha";
 
 export default async function SignupPage({
   searchParams,
@@ -7,6 +8,25 @@ export default async function SignupPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+
+  // Closed alpha: show a notice instead of the form. The form below is kept
+  // intact for when signups reopen (flip ALPHA_SIGNUPS_OPEN — see alpha.ts).
+  if (!ALPHA_SIGNUPS_OPEN) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <h1 className="text-2xl font-semibold">Private Alpha</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Bridges is in private alpha and signups are closed. Invited users
+            can log in.
+          </p>
+          <Link href="/login" className="inline-block font-medium underline">
+            Alpha Login
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
