@@ -1,4 +1,5 @@
 import { login } from "../actions";
+import { PasswordField } from "@/components/password-field";
 
 export default async function LoginPage({
   searchParams,
@@ -41,13 +42,11 @@ export default async function LoginPage({
             <label htmlFor="password" className="block text-sm font-medium">
               Password
             </label>
-            <input
+            <PasswordField
               id="password"
               name="password"
-              type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
             />
           </div>
           <button
