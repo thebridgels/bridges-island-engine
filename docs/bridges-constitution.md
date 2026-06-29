@@ -500,9 +500,10 @@ presence (11) systems — see the enforcement map.
 **Part VII — Visitor Visibility and Owner Accountability** *(principle 21,
 pairing with principles 14 and 17)*
 
-## 21. Visitor Visibility Within an Island; No Tracking Beyond It
+## 21. Visitor Visibility Within an Island; No Invisible Entry; No Tracking Beyond It
 
 *Adopted 2026-06-13 at the owner's explicit request.*
+*Amended 2026-06-29 to add the "No Invisible Entry" clause, at the owner's explicit request.*
 
 The owner has the right to know who enters their Island and what protected
 Places or Assets they access. Within an Island, a visitor has no anonymity
@@ -512,6 +513,27 @@ Because this is so, the obligation runs both ways: **before crossing a
 Bridge, a visitor must be clearly informed** that their identity and their
 activity within that Island are visible to the owner. Visibility is disclosed
 in advance, never sprung afterward.
+
+**No Invisible Entry.** A **public window** — an owner-enabled, clearly
+labeled public or anonymous/aggregate *view* (see below) — is the only place a
+presence may look in without being individually known. Everywhere else is
+**owned interior**, and entering it is not the same as glancing through a
+public window.
+
+By default, a visitor may not invisibly enter an Island, a Place, a bridged
+space, a protected Asset area, an Architect space, a project room, a family
+room, or any other owned interior. Entry into owned space — and activity once
+inside — follows that owner's visitor-visibility rules. The visitor must be
+told, **before** they enter, what the owner will be able to see: the same
+disclosure that precedes crossing a Bridge (above), now applied to every
+owned interior, not only to an Island as a whole. Disclosure precedes entry;
+entry is never silent by default.
+
+This applies to Architect spaces specifically. If visitor–Architect
+conversations are ever permitted — an owner-granted permission (principle 9)
+— the owner's visibility and accountability rights and the visitor's
+pre-entry disclosure rights both still apply. Conversing with an Architect
+inside an owner's space is entry into that space, not an exception to it.
 
 This visibility is strictly bounded:
 
@@ -543,9 +565,11 @@ Human, AI, or Bot classification (principles 11, 13).
 
 `Status:` partly enforced — within-Island actorship exists in the ledger and
 RLS confines records to their Island (cross-Island profiling has no data
-path); pre-crossing visitor disclosure, owner-scoped cross-Island review, an
-owner-enabled read-only public/anonymous mode, and full read-actorship are
-not yet built. See the enforcement map.
+path). Not yet built: pre-entry visitor disclosure across owned interiors
+(Islands, Places, bridged spaces, protected Asset areas, and Architect
+spaces), owner-scoped cross-Island review, an owner-enabled read-only "public
+window" mode, and full read-actorship of entries and reads. Visitor–Architect
+conversation is itself deferred (phase 2). See the enforcement map.
 
 ---
 
