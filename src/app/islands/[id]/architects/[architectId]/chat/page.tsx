@@ -14,7 +14,10 @@ import {
   type ArchitectMessage,
   CHAT_MESSAGE_MAX_LENGTH,
 } from "@/lib/architect-chat";
-import { isAnthropicConfigured } from "@/lib/model-providers/anthropic";
+import {
+  isAnthropicConfigured,
+  resolveModel,
+} from "@/lib/model-providers/anthropic";
 import { sendMessage, startConversation } from "./actions";
 
 export default async function ArchitectChatPage({
@@ -89,6 +92,20 @@ export default async function ArchitectChatPage({
   }[];
   const knowledge = architectKnowledge(architect, places, assets);
 
+  // Principle #14 disclosure values. The model shown is resolved from the
+  // SAME function the provider call uses, so the owner sees exactly what
+  // will be requested. No data flow or provider behavior changes here.
+  const effectiveProvider = architect.model_provider ?? "anthropic";
+  const providerLabel =
+    effectiveProvider === "anthropic" ? "Anthropic" : effectiveProvider;
+  const modelLabel = connectable ? resolveModel(architect.model_name) : null;
+  const scopedPlace = architect.place_id
+    ? places.find((place) => place.id === architect.place_id)
+    : undefined;
+  const scopeLabel = architect.place_id
+    ? `place-scoped — at ${scopedPlace?.name ?? "its place"}`
+    : "island-wide — the whole island";
+
   // Latest conversation with this architect, plus its transcript.
   const { data: conversationData } = await supabase
     .from("architect_conversations")
@@ -136,6 +153,42 @@ export default async function ArchitectChatPage({
           {architect.place_id ? "place-scoped" : "island-wide"} · every reply
           is AI-generated and recorded on this island.
         </p>
+      </div>
+
+      {/* Principle #14: disclose AI, provider, model, scope, owner-only,
+          and ledger-logging before the owner writes. */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm dark:border-gray-800 dark:bg-gray-900/40">
+        <p className="font-medium">Before you write — what this is</p>
+        <ul className="mt-2 space-y-1 text-gray-600 dark:text-gray-400">
+          <li>
+            This is an <span className="font-medium">AI presence</span>, not a
+            person. Every reply is AI-generated and marked &ldquo;
+            {architect.name} · AI&rdquo;.
+          </li>
+          <li>
+            Provider: <span className="font-medium">{providerLabel}</span>
+            {modelLabel ? (
+              <>
+                {" · "}Model: <span className="font-medium">{modelLabel}</span>
+              </>
+            ) : (
+              <>
+                {" · "}
+                <span className="font-medium">not connected yet</span>
+              </>
+            )}
+          </li>
+          <li>
+            Scope: <span className="font-medium">{scopeLabel}</span>. It sees
+            exactly what you may see, has no tools, and cannot change the
+            island.
+          </li>
+          <li>
+            This chat is <span className="font-medium">owner-only</span>, and
+            every exchange is recorded in this island&rsquo;s ledger — activity
+            only, never message content.
+          </li>
+        </ul>
       </div>
 
       <details className="rounded-lg border border-gray-200 p-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">

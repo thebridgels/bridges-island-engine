@@ -20,7 +20,11 @@ const FALLBACK_MODEL = "claude-haiku-4-5";
 // id; anything else falls back to the configured default. Kept permissive
 // on purpose (exact ids change); the API 404s unknown ids and we surface
 // that as a friendly error rather than hard-validating a list here.
-function resolveModel(storedModelName: string | null): string {
+//
+// Exported so the chat UI can DISCLOSE the exact model it will request
+// (Principle #14) from the same single source of truth used to call the
+// provider — read-only; this does not change provider behavior or data flow.
+export function resolveModel(storedModelName: string | null): string {
   const defaultModel = process.env.ANTHROPIC_DEFAULT_MODEL || FALLBACK_MODEL;
   if (!storedModelName) return defaultModel;
   const trimmed = storedModelName.trim().toLowerCase();
